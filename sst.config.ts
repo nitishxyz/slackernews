@@ -16,13 +16,11 @@ export default $config({
     };
   },
   async run() {
-    const { vpc } = await import("./infra/vpc");
-    const { databaseUrl } = await import("./infra/secrets");
-    await import("./infra/web");
+    await import("./infra/secrets");
+    const { web } = await import("./infra/web");
     await import("./infra/orm");
     return {
-      vpcId: vpc.id,
-      databaseUrl: databaseUrl,
+      website: web.url,
     };
   },
 });

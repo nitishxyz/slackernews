@@ -9,10 +9,6 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
-    "ForgeVpc": {
-      "bastion": string
-      "type": "sst.aws.Vpc"
-    }
     "HeliusApiKey": {
       "type": "sst.sst.Secret"
       "value": string
