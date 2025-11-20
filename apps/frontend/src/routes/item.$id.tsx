@@ -73,7 +73,7 @@ function CommentItem({ comment }: { comment: any }) {
         <div className="text-black pl-1">
             {comment.text}
         </div>
-        <div className="pl-8 mt-2">
+        <div className="pl-3 md:pl-8 mt-2">
             {comment.children.map((child: any) => (
                 <CommentItem key={child.id} comment={child} />
             ))}
@@ -86,16 +86,16 @@ function ItemPage() {
   const { post, comments } = Route.useLoaderData()
 
   return (
-    <div className="bg-background min-h-screen pt-2 px-4">
+    <div className="bg-background min-h-screen pt-2 px-2 md:px-4">
        <PostItem post={post} index={0} /> {/* Index 0 or hide rank? HN hides rank on item page usually, but PostItem expects it. We can hide it via CSS or just pass 0. Actually HN usually just shows the title larger? Let's stick to PostItem for consistency for now but maybe tweak it later. */}
        
        {post.text && (
-         <div className="pl-8 mt-4 text-[13px] max-w-4xl text-black">
+         <div className="pl-4 md:pl-9 mt-4 text-[13px] max-w-4xl text-black">
             {post.text}
          </div>
        )}
 
-       <div className="mt-8 pl-4">
+       <div className="mt-8 px-1 md:pl-4">
          <form className="mb-8">
             <textarea rows={6} className="w-full max-w-xl border border-gray-300 p-2 text-sm mb-2" />
             <br />

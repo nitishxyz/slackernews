@@ -6,10 +6,10 @@ export const Route = createFileRoute('/submit')({
 
 function SubmitPage() {
   return (
-    <div className="pt-4 px-8">
-      <form className="max-w-xl flex flex-col gap-4 text-[13px]">
-        <div className="flex gap-4">
-          <label className="w-16 font-medium text-[#828282]" htmlFor="title">title</label>
+    <div className="pt-4 px-4 md:px-8">
+      <form className="max-w-xl flex flex-col gap-3 md:gap-4 text-[13px]">
+        <div className="flex flex-col md:flex-row md:gap-4 gap-1">
+          <label className="md:w-16 font-medium text-[#828282]" htmlFor="title">title</label>
           <input 
             id="title" 
             type="text" 
@@ -17,8 +17,8 @@ function SubmitPage() {
           />
         </div>
         
-        <div className="flex gap-4">
-          <label className="w-16 font-medium text-[#828282]" htmlFor="url">url</label>
+        <div className="flex flex-col md:flex-row md:gap-4 gap-1">
+          <label className="md:w-16 font-medium text-[#828282]" htmlFor="url">url</label>
           <input 
             id="url" 
             type="text" 
@@ -26,13 +26,13 @@ function SubmitPage() {
           />
         </div>
 
-        <div className="flex gap-4">
-          <span className="w-16"></span>
+        <div className="flex md:gap-4 gap-1">
+          <span className="md:w-16"></span>
           <span className="font-bold">or</span>
         </div>
 
-        <div className="flex gap-4">
-          <label className="w-16 font-medium text-[#828282]" htmlFor="text">text</label>
+        <div className="flex flex-col md:flex-row md:gap-4 gap-1">
+          <label className="md:w-16 font-medium text-[#828282]" htmlFor="text">text</label>
           <textarea 
             id="text" 
             rows={4}

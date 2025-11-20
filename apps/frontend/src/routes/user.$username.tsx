@@ -62,7 +62,7 @@ function UserProfile() {
               </tr>
               <tr className="h-6">
                 <td className="align-top text-[#828282] w-24 pr-2">wallet:</td>
-                <td className="align-top font-mono text-xs">
+                <td className="align-top font-mono text-xs break-all">
                   {walletAddress}
                 </td>
               </tr>

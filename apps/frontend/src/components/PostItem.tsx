@@ -14,13 +14,15 @@ export function PostItem({ post, index }: { post: PostProps; index: number }) {
   const domain = post.url ? new URL(post.url).hostname.replace('www.', '') : null
 
   return (
-    <div className="flex gap-1 px-2 py-1 text-[13px] leading-tight">
-      <div className="text-[#828282] w-6 text-right font-medium shrink-0">
+    <div className="flex gap-1 md:gap-2 px-2 md:px-3 py-2 md:py-1 text-[13px] leading-tight">
+      <div className="text-[#828282] w-5 md:w-6 text-right font-medium shrink-0 pt-0.5">
         {index > 0 ? `${index}.` : ''}
       </div>
       <div className="flex flex-col">
         <div className="flex items-baseline gap-1">
-          <span className="arrow-up w-2.5 h-2.5 border-b-[8px] border-b-[#4c1d95] border-x-[4px] border-x-transparent mb-0.5 inline-block cursor-pointer" title="upvote"></span>
+          <div className="p-1 -ml-1 cursor-pointer" title="upvote">
+             <span className="arrow-up w-2.5 h-2.5 border-b-[8px] border-b-[#4c1d95] border-x-[4px] border-x-transparent mb-0.5 inline-block"></span>
+          </div>
           {post.url ? (
             <a href={post.url} target="_blank" rel="noreferrer" className="text-black visited:text-[#828282] font-medium hover:underline">
               {post.title}

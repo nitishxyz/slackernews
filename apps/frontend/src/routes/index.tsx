@@ -87,9 +87,11 @@ function App() {
           <a href="#" className="hover:underline">Apply to Colosseum</a>{' | '}
           <a href="#" className="hover:underline">Contact</a>
         </div>
-        <div className="mt-4 relative w-full max-w-md mx-auto">
-            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400">Search:</span>
-            <input type="text" className="w-full border border-gray-300 p-1 pl-16 text-sm" />
+        <div className="mt-4 px-4 md:px-0">
+          <div className="relative w-full max-w-md mx-auto">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400">Search:</span>
+              <input type="text" className="w-full border border-gray-300 p-1 pl-16 text-sm" />
+          </div>
         </div>
       </footer>
     </div>
