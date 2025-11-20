@@ -1,11 +1,11 @@
 import { domains } from "./domains";
-import { databaseUrl } from "./secrets";
+import { databaseUrl, heliusRpcUrl, privyAppId, privyAppSecret } from "./secrets";
 
 const redirects = [`www.${domains.web}`];
 
 export const web = new sst.aws.TanStackStart("SlackerNewsWeb", {
   path: "apps/frontend",
-  link: [databaseUrl],
+  link: [databaseUrl, heliusRpcUrl, privyAppId, privyAppSecret],
   domain: {
     name: domains.web,
     redirects: redirects,

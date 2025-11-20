@@ -1,7 +1,9 @@
 import { Link } from '@tanstack/react-router'
-import { cn } from '../lib/utils'
+import { usePrivy } from '@privy-io/react-auth'
 
 export default function Header() {
+  const { login, logout, authenticated, user } = usePrivy()
+
   const navLinks = [
     { name: 'new', to: '/new' },
     { name: 'threads', to: '/threads' },
@@ -37,7 +39,13 @@ export default function Header() {
       </nav>
       
       <div className="ml-auto mr-2">
-        <Link to="/login" className="hover:underline">login</Link>
+        {authenticated ? (
+          <button type="button" onClick={logout} className="hover:underline">
+            logout ({user?.email?.address?.split('@')[0] || user?.wallet?.address?.slice(0, 6) || 'user'})
+          </button>
+        ) : (
+          <button type="button" onClick={login} className="hover:underline">login</button>
+        )}
       </div>
     </header>
   )

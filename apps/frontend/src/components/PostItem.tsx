@@ -26,7 +26,11 @@ export function PostItem({ post, index }: { post: PostProps; index: number }) {
               {post.title}
             </a>
           ) : (
-            <Link to={`/item/${post.id}`} className="text-black visited:text-[#828282] font-medium hover:underline">
+            <Link
+              to="/item/$id"
+              params={{ id: post.id.toString() }}
+              className="text-black visited:text-[#828282] font-medium hover:underline"
+            >
               {post.title}
             </Link>
           )}
@@ -38,12 +42,16 @@ export function PostItem({ post, index }: { post: PostProps; index: number }) {
         </div>
         <div className="text-[10px] text-[#828282] pl-4">
           {post.score} points by{' '}
-          <Link to={`/user/${post.by}`} className="hover:underline">
+          <a href={`/user/${post.by}`} className="hover:underline">
             {post.by}
-          </Link>{' '}
+          </a>{' '}
           <span title={post.time}>{post.time}</span> |{' '}
           <span className="cursor-pointer hover:underline">hide</span> |{' '}
-          <Link to={`/item/${post.id}`} className="hover:underline">
+          <Link 
+            to="/item/$id" 
+            params={{ id: post.id.toString() }} 
+            className="hover:underline"
+          >
             {post.descendants} comments
           </Link>
         </div>

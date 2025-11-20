@@ -6,6 +6,10 @@ import {
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
+import { PrivyProvider } from '@privy-io/react-auth'
+import { getPrivyAppId } from '../server/env'
+import { AuthSync } from '../components/AuthSync'
+
 import Header from '../components/Header'
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
@@ -21,6 +25,7 @@ interface MyRouterContext {
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
+  loader: () => getPrivyAppId().then(id => ({ privyAppId: id })),
   head: () => ({
     meta: [
       {
@@ -46,16 +51,28 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const { privyAppId } = Route.useLoaderData()
+
   return (
     <html lang="en">
       <head>
         <HeadContent />
       </head>
       <body className="bg-background text-foreground">
+        <PrivyProvider
+          appId={privyAppId}
+          config={{
+            loginMethods: ['email', 'wallet', 'google', 'twitter', 'discord', 'github'],
+            // embeddedWallets: {
+            //   createOnLogin: 'users-without-wallets',
+            // },
+          }}
+        >
         <div className="md:w-[85%] mx-auto bg-background min-h-screen">
           <Header />
           <main className="py-2">{children}</main>
         </div>
+        <AuthSync />
         <TanStackDevtools
           config={{
             position: 'bottom-right',
@@ -69,6 +86,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             StoreDevtools,
           ]}
         />
+        </PrivyProvider>
         <Scripts />
       </body>
     </html>
