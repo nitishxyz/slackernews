@@ -63,7 +63,7 @@ function App() {
   const { latestPosts } = Route.useLoaderData()
 
   return (
-    <div className="bg-background min-h-screen pt-2 pb-8">
+    <div className="pt-2 pb-8">
       <div className="space-y-0">
         {latestPosts.map((post, i) => (
           <PostItem key={post.id} post={post} index={i + 1} />

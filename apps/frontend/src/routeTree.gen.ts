@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SubmitRouteImport } from './routes/submit'
 import { Route as NewRouteImport } from './routes/new'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as UserUsernameRouteImport } from './routes/user.$username'
 import { Route as ItemIdRouteImport } from './routes/item.$id'
 import { Route as DemoTanstackQueryRouteImport } from './routes/demo/tanstack-query'
 import { Route as DemoStoreRouteImport } from './routes/demo/store'
@@ -41,6 +42,11 @@ const NewRoute = NewRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UserUsernameRoute = UserUsernameRouteImport.update({
+  id: '/user/$username',
+  path: '/user/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ItemIdRoute = ItemIdRouteImport.update({
@@ -128,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/demo/store': typeof DemoStoreRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/item/$id': typeof ItemIdRoute
+  '/user/$username': typeof UserUsernameRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
   '/demo/form/address': typeof DemoFormAddressRoute
@@ -148,6 +155,7 @@ export interface FileRoutesByTo {
   '/demo/store': typeof DemoStoreRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/item/$id': typeof ItemIdRoute
+  '/user/$username': typeof UserUsernameRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
   '/demo/form/address': typeof DemoFormAddressRoute
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/demo/store': typeof DemoStoreRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/item/$id': typeof ItemIdRoute
+  '/user/$username': typeof UserUsernameRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
   '/demo/form/address': typeof DemoFormAddressRoute
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/demo/store'
     | '/demo/tanstack-query'
     | '/item/$id'
+    | '/user/$username'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
     | '/demo/form/address'
@@ -211,6 +221,7 @@ export interface FileRouteTypes {
     | '/demo/store'
     | '/demo/tanstack-query'
     | '/item/$id'
+    | '/user/$username'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
     | '/demo/form/address'
@@ -231,6 +242,7 @@ export interface FileRouteTypes {
     | '/demo/store'
     | '/demo/tanstack-query'
     | '/item/$id'
+    | '/user/$username'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
     | '/demo/form/address'
@@ -252,6 +264,7 @@ export interface RootRouteChildren {
   DemoStoreRoute: typeof DemoStoreRoute
   DemoTanstackQueryRoute: typeof DemoTanstackQueryRoute
   ItemIdRoute: typeof ItemIdRoute
+  UserUsernameRoute: typeof UserUsernameRoute
   DemoApiNamesRoute: typeof DemoApiNamesRoute
   DemoApiTqTodosRoute: typeof DemoApiTqTodosRoute
   DemoFormAddressRoute: typeof DemoFormAddressRoute
@@ -285,6 +298,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/user/$username': {
+      id: '/user/$username'
+      path: '/user/$username'
+      fullPath: '/user/$username'
+      preLoaderRoute: typeof UserUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/item/$id': {
@@ -404,6 +424,7 @@ const rootRouteChildren: RootRouteChildren = {
   DemoStoreRoute: DemoStoreRoute,
   DemoTanstackQueryRoute: DemoTanstackQueryRoute,
   ItemIdRoute: ItemIdRoute,
+  UserUsernameRoute: UserUsernameRoute,
   DemoApiNamesRoute: DemoApiNamesRoute,
   DemoApiTqTodosRoute: DemoApiTqTodosRoute,
   DemoFormAddressRoute: DemoFormAddressRoute,

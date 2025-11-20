@@ -2,7 +2,15 @@ import { Link } from '@tanstack/react-router'
 import { usePrivy } from '@privy-io/react-auth'
 
 export default function Header() {
-  const { login, logout, authenticated, user } = usePrivy()
+  const { login, logout, authenticated, user, ready } = usePrivy()
+
+  const username = 
+    user?.github?.username ||
+    user?.google?.name ||
+    user?.twitter?.username ||
+    user?.discord?.username ||
+    user?.email?.address?.split('@')[0] ||
+    `user_${user?.id?.slice(0, 8) || 'anon'}`
 
   const navLinks = [
     { name: 'new', to: '/new' },
@@ -15,22 +23,22 @@ export default function Header() {
   ]
 
   return (
-    <header className="bg-[#4c1d95] text-white p-1 flex items-center text-[13px] leading-tight">
-      <Link to="/" className="font-bold border border-white mr-2 px-1 py-0.5 text-white">
+    <header className="bg-[#4c1d95] text-white p-0.5 flex items-center text-[10pt] leading-tight">
+      <Link to="/" className="font-bold border border-white mr-1 px-1.5 py-0.5 text-white bg-[#4c1d95] ml-0.5">
         SN
       </Link>
-      <Link to="/" className="font-bold mr-4 hover:underline">
+      <Link to="/" className="font-bold mr-2 hover:underline text-white">
         SlackerNews
       </Link>
       
-      <nav className="flex gap-2">
+      <nav className="flex gap-1 text-white">
         {navLinks.map((link, index) => (
           <div key={link.name} className="flex items-center">
-            {index > 0 && <span className="mr-2">|</span>}
+            <span className="mx-1">|</span>
             <Link 
               to={link.to}
-              className="hover:underline"
-              activeProps={{ className: 'text-white' }}
+              className="hover:underline text-white"
+              activeProps={{ className: 'font-bold' }}
             >
               {link.name}
             </Link>
@@ -38,13 +46,19 @@ export default function Header() {
         ))}
       </nav>
       
-      <div className="ml-auto mr-2">
-        {authenticated ? (
-          <button type="button" onClick={logout} className="hover:underline">
-            logout ({user?.email?.address?.split('@')[0] || user?.wallet?.address?.slice(0, 6) || 'user'})
-          </button>
+      <div className="ml-auto mr-1 text-white">
+        {!ready ? (
+          <span>loading...</span>
+        ) : authenticated ? (
+          <div className="flex items-center gap-2">
+            <Link to={`/user/${username}`} className="hover:underline text-white">
+              {username}
+            </Link>
+            <span>|</span>
+            <button type="button" onClick={logout} className="hover:underline text-white">logout</button>
+          </div>
         ) : (
-          <button type="button" onClick={login} className="hover:underline">login</button>
+          <button type="button" onClick={login} className="hover:underline text-white">login</button>
         )}
       </div>
     </header>

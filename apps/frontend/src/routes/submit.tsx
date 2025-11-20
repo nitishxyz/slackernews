@@ -6,7 +6,7 @@ export const Route = createFileRoute('/submit')({
 
 function SubmitPage() {
   return (
-    <div className="bg-background min-h-screen pt-4 px-8">
+    <div className="pt-4 px-8">
       <form className="max-w-xl flex flex-col gap-4 text-[13px]">
         <div className="flex gap-4">
           <label className="w-16 font-medium text-[#828282]" htmlFor="title">title</label>

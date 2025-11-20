@@ -68,7 +68,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             // },
           }}
         >
-        <div className="md:w-[85%] mx-auto bg-background min-h-screen">
+        <div className="md:w-[85%] mx-auto bg-[#f6f6ef]">
           <Header />
           <main className="py-2">{children}</main>
         </div>

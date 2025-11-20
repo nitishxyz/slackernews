@@ -41,6 +41,7 @@
     "drizzle-orm": "^0.44.7",
     "lucide-react": "^0.544.0",
     "postgres": "^3.4.4",
+    "qrcode.react": "^4.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "sst": "^3.17.23",

@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 body {
-  @apply m-0;
+  @apply m-0 bg-white; /* HN body is white on the sides */
   font-family:
     Verdana, Geneva, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -20,7 +20,8 @@ code {
 
 :root {
   /* HN Theme */
-  --background: #f6f6ef; /* HN Beige */
+  --background: #ffffff;
+  --hn-beige: #f6f6ef; /* HN Beige */
   --foreground: #000000;
   --card: #ffffff;
   --card-foreground: #000000;
@@ -46,6 +47,7 @@ code {
   /* Dark mode - keeping similar to light but inverted for now, or just disable it if HN is strictly light. 
      Let's make a dark theme that respects the orange but is dark gray. */
   --background: #1a1a1a;
+  --hn-beige: #1a1a1a; 
   --foreground: #d4d4d4;
   --card: #242424;
   --card-foreground: #d4d4d4;
@@ -68,6 +70,7 @@ code {
 
 @theme inline {
   --color-background: var(--background);
+  --color-hn-beige: var(--hn-beige);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
@@ -111,5 +114,8 @@ code {
   }
   body {
     @apply bg-background text-foreground;
+  }
+  a {
+    @apply hover:underline;
   }
 }
