@@ -13,6 +13,7 @@ export default function Header() {
     `user_${user?.id?.slice(0, 8) || 'anon'}`
 
   const navLinks: { name: string, to: string }[] = [
+    { name: 'new', to: '/new' },
     { name: 'comments', to: '/comments' },
     { name: 'show', to: '/show' },
     { name: 'submit', to: '/submit' },
