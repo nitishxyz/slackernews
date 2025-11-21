@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { usePrivy } from '@privy-io/react-auth'
 import { useState } from 'react'
 import { submitPost } from '../server/posts'
@@ -9,8 +9,9 @@ export const Route = createFileRoute('/submit')({
 })
 
 function SubmitPage() {
-  const { authenticated, login } = usePrivy()
+  const { authenticated } = usePrivy()
   const navigate = useNavigate()
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { token, loading: tokenLoading } = useAuthToken()
@@ -50,7 +51,9 @@ function SubmitPage() {
       })
       
       if (result.success) {
-        navigate({ to: '/' })
+        // Invalidate the home page route to force fresh data
+        router.invalidate()
+        navigate({ to: '/', search: { page: 1, sort: 'new' } })
       }
     } catch (err: any) {
       console.error(err)

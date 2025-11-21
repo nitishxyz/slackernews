@@ -10,7 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SubmitRouteImport } from './routes/submit'
-import { Route as NewRouteImport } from './routes/new'
+import { Route as SearchRouteImport } from './routes/search'
+import { Route as CommentsRouteImport } from './routes/comments'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UserUsernameRouteImport } from './routes/user.$username'
 import { Route as ItemIdRouteImport } from './routes/item.$id'
@@ -34,9 +35,14 @@ const SubmitRoute = SubmitRouteImport.update({
   path: '/submit',
   getParentRoute: () => rootRouteImport,
 } as any)
-const NewRoute = NewRouteImport.update({
-  id: '/new',
-  path: '/new',
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommentsRoute = CommentsRouteImport.update({
+  id: '/comments',
+  path: '/comments',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -127,7 +133,8 @@ const DemoStartSsrDataOnlyRoute = DemoStartSsrDataOnlyRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/new': typeof NewRoute
+  '/comments': typeof CommentsRoute
+  '/search': typeof SearchRoute
   '/submit': typeof SubmitRoute
   '/demo/db-chat': typeof DemoDbChatRoute
   '/demo/db-chat-api': typeof DemoDbChatApiRoute
@@ -148,7 +155,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/new': typeof NewRoute
+  '/comments': typeof CommentsRoute
+  '/search': typeof SearchRoute
   '/submit': typeof SubmitRoute
   '/demo/db-chat': typeof DemoDbChatRoute
   '/demo/db-chat-api': typeof DemoDbChatApiRoute
@@ -170,7 +178,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/new': typeof NewRoute
+  '/comments': typeof CommentsRoute
+  '/search': typeof SearchRoute
   '/submit': typeof SubmitRoute
   '/demo/db-chat': typeof DemoDbChatRoute
   '/demo/db-chat-api': typeof DemoDbChatApiRoute
@@ -193,7 +202,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/new'
+    | '/comments'
+    | '/search'
     | '/submit'
     | '/demo/db-chat'
     | '/demo/db-chat-api'
@@ -214,7 +224,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/new'
+    | '/comments'
+    | '/search'
     | '/submit'
     | '/demo/db-chat'
     | '/demo/db-chat-api'
@@ -235,7 +246,8 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/new'
+    | '/comments'
+    | '/search'
     | '/submit'
     | '/demo/db-chat'
     | '/demo/db-chat-api'
@@ -257,7 +269,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  NewRoute: typeof NewRoute
+  CommentsRoute: typeof CommentsRoute
+  SearchRoute: typeof SearchRoute
   SubmitRoute: typeof SubmitRoute
   DemoDbChatRoute: typeof DemoDbChatRoute
   DemoDbChatApiRoute: typeof DemoDbChatApiRoute
@@ -286,11 +299,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SubmitRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/new': {
-      id: '/new'
-      path: '/new'
-      fullPath: '/new'
-      preLoaderRoute: typeof NewRouteImport
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/comments': {
+      id: '/comments'
+      path: '/comments'
+      fullPath: '/comments'
+      preLoaderRoute: typeof CommentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -417,7 +437,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  NewRoute: NewRoute,
+  CommentsRoute: CommentsRoute,
+  SearchRoute: SearchRoute,
   SubmitRoute: SubmitRoute,
   DemoDbChatRoute: DemoDbChatRoute,
   DemoDbChatApiRoute: DemoDbChatApiRoute,
