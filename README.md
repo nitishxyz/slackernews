@@ -11,8 +11,18 @@ Traditional social platforms are plagued by spam, bots, and low-effort fluff bec
 ### Economic Model (Draft)
 
 *   **Submissions**: Cost **$0.20 USDC**. This creates a barrier to entry that discourages spam and low-effort links.
-*   **Comments**: Cost **$0.05 USDC**. Encourages thoughtful discussion over "first!", "lol", or flame wars.
+*   **Comments**: Cost **$0.05 USDC** (First comment only). The first comment on any thread initiates the discussion and incurs a cost. Subsequent replies are free to encourage depth, but the initial barrier remains.
 *   **Upvotes**: Cost **$0.01 USDC**. Curation is not free; putting a price on upvotes ensures that users only promote content they genuinely value.
+
+### Transaction Flow
+
+To ensure security and user intent:
+
+1.  **Backend Construction**: The backend constructs the transaction and partially signs it using a secure `platformSigner`.
+2.  **Frontend Signing**: The transaction is sent to the frontend where the user signs it using their embedded Privy wallet.
+3.  **Verification**: The signed transaction is submitted and verified before the action (Post, Comment, Upvote) is finalized in the database.
+
+This "Backend Build -> Frontend Sign" flow prevents client-side tampering while ensuring the user maintains custody.
 
 #### Revenue Sharing
  *   **80%** of the USDC generated from comments and upvotes is sent directly to the Original Poster's (OP) wallet.

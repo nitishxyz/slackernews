@@ -7,7 +7,8 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import { PrivyProvider } from '@privy-io/react-auth'
-import { getPrivyAppId } from '../server/env'
+import { createSolanaRpc, createSolanaRpcSubscriptions } from '@solana/kit'
+import { getPrivyAppId, getHeliusRpcUrl, getEnv } from '../server/env'
 import { AuthSync } from '../components/AuthSync'
 
 import Header from '../components/Header'
@@ -25,7 +26,20 @@ interface MyRouterContext {
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-  loader: () => getPrivyAppId().then(id => ({ privyAppId: id })),
+  loader: async () => {
+    const [privyAppId, heliusRpcUrl, env] = await Promise.all([
+      getPrivyAppId(),
+      getHeliusRpcUrl(),
+      getEnv(),
+    ]);
+    return { privyAppId, heliusRpcUrl, env };
+  },
+  notFoundComponent: () => (
+    <div className="pt-4 px-4 md:px-8">
+      <h1 className="text-xl font-bold mb-4">404 - Page Not Found</h1>
+      <p className="text-[#828282]">The page you're looking for doesn't exist.</p>
+    </div>
+  ),
   head: () => ({
     meta: [
       {
@@ -51,7 +65,18 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  const { privyAppId } = Route.useLoaderData()
+  const { privyAppId, heliusRpcUrl, env } = Route.useLoaderData()
+  const isProd = env === 'production'
+
+  const solanaConfig = isProd ? {
+    rpcUrl: heliusRpcUrl,
+    cluster: { name: 'mainnet-beta' as const, rpcUrl: heliusRpcUrl },
+    chain: 'solana:mainnet' as const
+  } : {
+    rpcUrl: heliusRpcUrl,
+    cluster: { name: 'devnet' as const, rpcUrl: heliusRpcUrl },
+    chain: 'solana:devnet' as const
+  }
 
   return (
     <html lang="en">
@@ -59,15 +84,26 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body className="bg-background text-foreground">
-        <PrivyProvider
-          appId={privyAppId}
-          config={{
-            loginMethods: ['email', 'wallet', 'google', 'twitter', 'discord', 'github'],
-            // embeddedWallets: {
-            //   createOnLogin: 'users-without-wallets',
-            // },
-          }}
-        >
+       <PrivyProvider
+         appId={privyAppId}
+         config={{
+           loginMethods: ['email', 'wallet', 'google', 'twitter', 'discord', 'github'],
+           embeddedWallets: {
+             createOnLogin: 'users-without-wallets',
+           },
+           solana: {
+              rpcs: {
+                [solanaConfig.chain]: {
+                  rpc: createSolanaRpc(solanaConfig.rpcUrl),
+                  rpcSubscriptions: createSolanaRpcSubscriptions(solanaConfig.rpcUrl.replace('https', 'wss'))
+                }
+              }
+            },
+           solanaClusters: [
+             solanaConfig.cluster
+           ],
+         }}
+       >
         <div className="md:w-[85%] w-full mx-auto bg-[#f6f6ef]">
           <Header />
           <main className="py-2">{children}</main>

@@ -8,6 +8,20 @@
       "when": 1763662254404,
       "tag": "0000_striped_the_stranger",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1763714447472,
+      "tag": "0001_slow_hydra",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1763715197378,
+      "tag": "0002_remarkable_matthew_murdock",
+      "breakpoints": true
     }
   ]
 }

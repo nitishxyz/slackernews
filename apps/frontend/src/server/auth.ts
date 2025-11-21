@@ -40,20 +40,25 @@ export const syncUser = createServerFn({ method: "POST" })
 				return { success: false, error: "Email required" };
 			}
 
+      // Find primary Solana wallet
+      const solanaWallet = user.linkedAccounts.find(
+        (a) => a.type === "wallet" && a.chainType === "solana"
+      );
+
 			// Upsert user
-			// Check if user exists first to avoid overwriting fields if we want to preserve them
-			// But upsert is safer for concurrency
 			await db
 				.insert(users)
 				.values({
 					id: userId,
 					email: email,
 					username: username,
+          walletAddress: solanaWallet?.address,
 					stage: "user",
 				})
 				.onConflictDoUpdate({
 					target: users.id,
 					set: {
+            walletAddress: solanaWallet?.address, // Always update wallet if it changes
 						updatedAt: new Date(),
 						// We don't overwrite email/username on every sync to allow user changes if we support that
 					},

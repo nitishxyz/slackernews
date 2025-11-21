@@ -1,18 +1,71 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { usePrivy } from '@privy-io/react-auth'
+import { useState } from 'react'
+import { submitPost } from '../server/posts'
 
 export const Route = createFileRoute('/submit')({
   component: SubmitPage,
 })
 
 function SubmitPage() {
+ const { authenticated, getAccessToken } = usePrivy()
+  const navigate = useNavigate()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+
+    const formData = new FormData(e.currentTarget)
+    const title = formData.get('title') as string
+    const url = formData.get('url') as string
+    const content = formData.get('text') as string
+
+    if (!authenticated) {
+      setError("Please login first")
+      setLoading(false)
+      return
+    }
+
+   try {
+      // 1. Get Auth Token
+      const authToken = await getAccessToken()
+      if (!authToken) throw new Error("Failed to get auth token")
+
+     // 2. Submit
+      const result = await submitPost({ 
+        data: {
+          title,
+          url,
+          content,
+          authToken
+        }
+      })
+      
+      if (result.success) {
+        navigate({ to: '/' }) // Redirect to home
+      }
+    } catch (err: any) {
+      console.error(err)
+      setError(err.message || "Failed to submit post")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="pt-4 px-4 md:px-8">
-      <form className="max-w-xl flex flex-col gap-3 md:gap-4 text-[13px]">
+      {error && <div className="text-red-500 mb-4 text-sm font-bold">{error}</div>}
+      <form onSubmit={handleSubmit} className="max-w-xl flex flex-col gap-3 md:gap-4 text-[13px]">
         <div className="flex flex-col md:flex-row md:gap-4 gap-1">
           <label className="md:w-16 font-medium text-[#828282]" htmlFor="title">title</label>
           <input 
             id="title" 
+            name="title"
             type="text" 
+            required
             className="border border-gray-300 p-1 w-full"
           />
         </div>
@@ -21,6 +74,7 @@ function SubmitPage() {
           <label className="md:w-16 font-medium text-[#828282]" htmlFor="url">url</label>
           <input 
             id="url" 
+            name="url"
             type="text" 
             className="border border-gray-300 p-1 w-full"
           />
@@ -35,6 +89,7 @@ function SubmitPage() {
           <label className="md:w-16 font-medium text-[#828282]" htmlFor="text">text</label>
           <textarea 
             id="text" 
+            name="text"
             rows={4}
             className="border border-gray-300 p-1 w-full"
           />
@@ -44,9 +99,10 @@ function SubmitPage() {
           <span className="w-16"></span>
           <button 
             type="submit" 
-            className="bg-background border border-gray-400 px-4 py-1 font-medium text-black hover:border-black rounded-sm"
+            disabled={loading}
+            className="bg-background border border-gray-400 px-4 py-1 font-medium text-black hover:border-black rounded-sm disabled:opacity-50"
           >
-            submit
+            {loading ? 'processing...' : 'submit'}
           </button>
         </div>
         

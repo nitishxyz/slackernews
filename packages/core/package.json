@@ -5,9 +5,16 @@
   "exports": {
     "./db": "./db/index.ts",
     "./db/types": "./db/types.ts",
-    "./db/schema": "./db/schema/index.ts"
+    "./db/schema": "./db/schema/index.ts",
+    "./solana": "./solana/index.ts"
   },
   "dependencies": {
+    "@solana-program/compute-budget": "^0.11.0",
+    "@solana-program/system": "^0.10.0",
+    "@solana-program/token": "^0.9.0",
+    "@solana/kit": "^5.0.0",
+    "@solana/signers": "^5.0.0",
+    "bs58": "^6.0.0",
     "drizzle-orm": "^0.44.7",
     "sst": "*"
   },

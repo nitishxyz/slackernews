@@ -17,6 +17,10 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "PlatformSigner": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "PrivyAppId": {
       "type": "sst.sst.Secret"
       "value": string
