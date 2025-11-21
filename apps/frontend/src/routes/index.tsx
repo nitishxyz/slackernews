@@ -1,77 +1,57 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { PostItem, type PostProps } from '../components/PostItem'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { PostItem } from '../components/PostItem'
+import { fetchPosts } from '../server/posts'
+import { timeAgo } from '../lib/utils'
+import { z } from 'zod'
 
-// Mock data for UI scaffold
-const MOCK_POSTS: PostProps[] = [
-  {
-    id: 1,
-    title: "SlackerNews: The High-Signal Platform",
-    url: "https://slackernews.com",
-    score: 156,
-    by: "batman",
-    time: "2 hours ago",
-    descendants: 42
-  },
-  {
-    id: 2,
-    title: "Show SN: A serverless monorepo with TanStack Start",
-    url: "https://github.com/tanstack/start",
-    score: 89,
-    by: "tanner",
-    time: "3 hours ago",
-    descendants: 12
-  },
-  {
-    id: 3,
-    title: "Why Solana is perfect for micro-payments",
-    url: "https://solana.com",
-    score: 234,
-    by: "anatoly",
-    time: "5 hours ago",
-    descendants: 89
-  },
-  {
-    id: 4,
-    title: "Understanding OkLCH color space",
-    url: "https://evilmartians.com/chronicles/oklch-in-css-why-quit-rgb-hsl",
-    score: 45,
-    by: "css_wizard",
-    time: "6 hours ago",
-    descendants: 5
-  },
-  {
-    id: 5,
-    title: "How to build a compiler in Bun",
-    url: null,
-    score: 67,
-    by: "jarred",
-    time: "7 hours ago",
-    descendants: 15
-  }
-]
+const PostSearchSchema = z.object({
+  page: z.number().default(1).catch(1),
+  sort: z.enum(['new', 'top']).default('new').catch('new'),
+})
 
 export const Route = createFileRoute('/')({
-  component: App,
-  loader: async () => {
-    // In the future, this will fetch from DB
-    // const latestPosts = await db.select().from(posts).limit(30);
-    return { latestPosts: MOCK_POSTS };
+  validateSearch: (search) => PostSearchSchema.parse(search),
+  loaderDeps: ({ search: { page, sort } }) => ({ page, sort }),
+  loader: async ({ deps: { page, sort } }) => {
+    const { posts, hasMore } = await fetchPosts({ data: { page, sort } })
+    return { 
+      latestPosts: posts.map(p => ({
+        id: p.id,
+        title: p.title,
+        url: p.url,
+        score: p.score,
+        by: p.by,
+        time: timeAgo(p.createdAt),
+        descendants: p.commentCount
+      })),
+      hasMore
+    }
   },
+  component: App,
 })
 
 function App() {
-  const { latestPosts } = Route.useLoaderData()
+  const { latestPosts, hasMore } = Route.useLoaderData()
+  const { page } = Route.useSearch()
 
   return (
     <div className="pt-2 pb-8">
       <div className="space-y-0">
         {latestPosts.map((post, i) => (
-          <PostItem key={post.id} post={post} index={i + 1} />
+          <PostItem key={post.id} post={post} index={(page - 1) * 30 + i + 1} />
         ))}
       </div>
-      <div className="ml-9 mt-4">
-        <a href="/news?p=2" className="text-black font-medium hover:underline text-[13px]">More</a>
-      </div>
+      {hasMore && (
+        <div className="ml-9 mt-4">
+          <Link 
+            to="/" 
+            search={{ page: page + 1 }}
+            className="text-black font-medium hover:underline text-[13px]"
+          >
+            More
+          </Link>
+        </div>
+      )}
       
       <footer className="mt-10 border-t-2 border-[#4c1d95] pt-4 text-center text-[10px] text-gray-500">
         <p>

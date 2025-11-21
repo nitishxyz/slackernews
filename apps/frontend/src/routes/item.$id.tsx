@@ -1,93 +1,101 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { PostItem } from '../components/PostItem'
-
-// Mock Data
-const MOCK_POST = {
-  id: 1,
-  title: "SlackerNews: The High-Signal Platform",
-  url: "https://slackernews.com",
-  score: 156,
-  by: "batman",
-  time: "2 hours ago",
-  descendants: 42,
-  text: "We built this to solve the noise problem. Let us know what you think!"
-}
-
-const MOCK_COMMENTS = [
-  {
-    id: 101,
-    by: "user1",
-    time: "1 hour ago",
-    text: "This looks amazing! I love the retro feel.",
-    children: [
-      {
-        id: 102,
-        by: "batman",
-        time: "45 minutes ago",
-        text: "Thanks! We wanted to pay homage to the original.",
-        children: []
-      }
-    ]
-  },
-  {
-    id: 103,
-    by: "critic99",
-    time: "1.5 hours ago",
-    text: "Why another aggregator? What makes this different?",
-    children: [
-      {
-        id: 104,
-        by: "batman",
-        time: "1 hour ago",
-        text: "Skin in the game. You pay to play, which reduces spam.",
-        children: [
-             {
-                id: 105,
-                by: "critic99",
-                time: "30 minutes ago",
-                text: "Interesting economic model.",
-                children: []
-             }
-        ]
-      }
-    ]
-  }
-]
+import { CommentItem, CommentProps } from '../components/CommentItem'
+import { fetchPost } from '../server/posts'
+import { submitComment } from '../server/comments'
+import { timeAgo } from '../lib/utils'
+import { usePrivy } from '@privy-io/react-auth'
+import { useState } from 'react'
 
 export const Route = createFileRoute('/item/$id')({
   component: ItemPage,
   loader: async ({ params }) => {
-    // In real app, fetch post by params.id
-    return { post: MOCK_POST, comments: MOCK_COMMENTS }
+    const result = await fetchPost({ data: { postId: Number(params.id) } });
+    if (!result) throw new Error("Post not found"); // Simple error handling
+    
+    const { comments, ...post } = result;
+    
+    // Build Tree
+    const map: Record<number, any> = {};
+    const roots: any[] = [];
+    
+    // First pass: create nodes
+    comments.forEach(c => {
+      map[c.id] = { 
+        ...c, 
+        children: [],
+        time: timeAgo(c.createdAt),
+        text: c.content 
+      };
+    });
+    
+    // Second pass: link children
+    comments.forEach(c => {
+      if (c.parentId && map[c.parentId]) {
+        map[c.parentId].children.push(map[c.id]);
+      } else {
+        roots.push(map[c.id]);
+      }
+    });
+
+    return { 
+      post: {
+        id: post.id,
+        title: post.title,
+        url: post.url,
+        score: post.score,
+        by: post.by,
+        time: timeAgo(post.createdAt),
+        descendants: post.commentCount,
+        text: post.content
+      },
+      comments: roots as CommentProps[]
+    }
   }
 })
 
-function CommentItem({ comment }: { comment: any }) {
-  return (
-    <div className="mb-2 text-[13px]">
-        <div className="text-[#828282] mb-1">
-            <span className="cursor-pointer hover:underline text-black font-medium">{comment.by}</span>{' '}
-            <span>{comment.time}</span>{' '}
-            <span className="hover:underline cursor-pointer">[-]</span>
-        </div>
-        <div className="text-black pl-1">
-            {comment.text}
-        </div>
-        <div className="pl-3 md:pl-8 mt-2">
-            {comment.children.map((child: any) => (
-                <CommentItem key={child.id} comment={child} />
-            ))}
-        </div>
-    </div>
-  )
-}
-
 function ItemPage() {
   const { post, comments } = Route.useLoaderData()
+  const { getAccessToken, authenticated, login } = usePrivy();
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!authenticated) {
+        login();
+        return;
+    }
+
+    const form = e.currentTarget;
+    const content = (form.elements.namedItem('content') as HTMLTextAreaElement).value;
+    if (!content) return;
+
+    setSubmitting(true);
+    try {
+        const token = await getAccessToken();
+        if (!token) throw new Error("No token");
+
+        await submitComment({
+            data: {
+                postId: post.id,
+                content,
+                authToken: token
+            }
+        });
+        
+        form.reset();
+        router.invalidate();
+    } catch (e) {
+        console.error(e);
+    } finally {
+        setSubmitting(false);
+    }
+  };
 
   return (
     <div className="bg-background min-h-screen pt-2 px-2 md:px-4">
-       <PostItem post={post} index={0} /> {/* Index 0 or hide rank? HN hides rank on item page usually, but PostItem expects it. We can hide it via CSS or just pass 0. Actually HN usually just shows the title larger? Let's stick to PostItem for consistency for now but maybe tweak it later. */}
+       <PostItem post={post} index={0} />
        
        {post.text && (
          <div className="pl-4 md:pl-9 mt-4 text-[13px] max-w-4xl text-black">
@@ -96,10 +104,10 @@ function ItemPage() {
        )}
 
        <div className="mt-8 px-1 md:pl-4">
-         <form className="mb-8">
-            <textarea rows={6} className="w-full max-w-xl border border-gray-300 p-2 text-sm mb-2" />
+         <form onSubmit={handleSubmit} className="mb-8">
+            <textarea name="content" rows={6} className="w-full max-w-xl border border-gray-300 p-2 text-sm mb-2" disabled={submitting} />
             <br />
-            <button type="submit" className="bg-background border border-gray-400 px-4 py-1 font-medium text-black hover:border-black rounded-sm text-xs">
+            <button type="submit" disabled={submitting} className="bg-background border border-gray-400 px-4 py-1 font-medium text-black hover:border-black rounded-sm text-xs">
                 add comment
             </button>
          </form>
