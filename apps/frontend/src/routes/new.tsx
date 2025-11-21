@@ -8,11 +8,11 @@ const PostSearchSchema = z.object({
   page: z.number().default(1).catch(1),
 })
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute('/new')({
   validateSearch: (search) => PostSearchSchema.parse(search),
   loaderDeps: ({ search: { page } }) => ({ page }),
   loader: async ({ deps: { page } }) => {
-    const { posts, hasMore } = await fetchPosts({ data: { page, sort: 'top', limit: 30 } })
+    const { posts, hasMore } = await fetchPosts({ data: { page, sort: 'new', limit: 30 } })
     return { 
       latestPosts: posts.map(p => ({
         id: p.id,
@@ -28,10 +28,10 @@ export const Route = createFileRoute('/')({
       page
     }
   },
-  component: App,
+  component: NewPage,
 })
 
-function App() {
+function NewPage() {
   const { latestPosts, hasMore, page } = Route.useLoaderData()
   const navigate = useNavigate()
 
@@ -54,7 +54,7 @@ function App() {
       <div className="ml-9 mt-4 text-[13px]">
         {page > 1 && (
           <Link 
-            to="/" 
+            to="/new" 
             search={{ page: page - 1 }}
             className="text-black hover:underline"
           >
@@ -66,7 +66,7 @@ function App() {
         {hasMore && <span className="mx-2 text-[#828282]">|</span>}
         {hasMore && (
           <Link 
-            to="/" 
+            to="/new" 
             search={{ page: page + 1 }}
             className="text-black hover:underline"
           >
@@ -98,3 +98,4 @@ function App() {
     </div>
   )
 }
+

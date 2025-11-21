@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SubmitRouteImport } from './routes/submit'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as NewRouteImport } from './routes/new'
 import { Route as CommentsRouteImport } from './routes/comments'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UserUsernameRouteImport } from './routes/user.$username'
@@ -38,6 +39,11 @@ const SubmitRoute = SubmitRouteImport.update({
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewRoute = NewRouteImport.update({
+  id: '/new',
+  path: '/new',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CommentsRoute = CommentsRouteImport.update({
@@ -134,6 +140,7 @@ const DemoStartSsrDataOnlyRoute = DemoStartSsrDataOnlyRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/comments': typeof CommentsRoute
+  '/new': typeof NewRoute
   '/search': typeof SearchRoute
   '/submit': typeof SubmitRoute
   '/demo/db-chat': typeof DemoDbChatRoute
@@ -156,6 +163,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/comments': typeof CommentsRoute
+  '/new': typeof NewRoute
   '/search': typeof SearchRoute
   '/submit': typeof SubmitRoute
   '/demo/db-chat': typeof DemoDbChatRoute
@@ -179,6 +187,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/comments': typeof CommentsRoute
+  '/new': typeof NewRoute
   '/search': typeof SearchRoute
   '/submit': typeof SubmitRoute
   '/demo/db-chat': typeof DemoDbChatRoute
@@ -203,6 +212,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/comments'
+    | '/new'
     | '/search'
     | '/submit'
     | '/demo/db-chat'
@@ -225,6 +235,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/comments'
+    | '/new'
     | '/search'
     | '/submit'
     | '/demo/db-chat'
@@ -247,6 +258,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/comments'
+    | '/new'
     | '/search'
     | '/submit'
     | '/demo/db-chat'
@@ -270,6 +282,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CommentsRoute: typeof CommentsRoute
+  NewRoute: typeof NewRoute
   SearchRoute: typeof SearchRoute
   SubmitRoute: typeof SubmitRoute
   DemoDbChatRoute: typeof DemoDbChatRoute
@@ -304,6 +317,13 @@ declare module '@tanstack/react-router' {
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/new': {
+      id: '/new'
+      path: '/new'
+      fullPath: '/new'
+      preLoaderRoute: typeof NewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/comments': {
@@ -438,6 +458,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CommentsRoute: CommentsRoute,
+  NewRoute: NewRoute,
   SearchRoute: SearchRoute,
   SubmitRoute: SubmitRoute,
   DemoDbChatRoute: DemoDbChatRoute,
