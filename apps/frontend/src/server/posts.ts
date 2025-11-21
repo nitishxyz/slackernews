@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { db } from "../db/client";
 import { posts, users, upvotes, comments } from "@slackernews/core/db/schema";
-import { desc, eq, sql, and, isNull } from "drizzle-orm";
+import { desc, eq, sql, and, isNull, or } from "drizzle-orm";
 import { getAuthFromRequest } from "./auth";
 
 const PostSchema = z.object({
@@ -191,5 +191,81 @@ export const fetchPost = createServerFn({ method: "GET" })
         ...c,
         by: c.authorUsername || c.authorId?.slice(0, 8) || "unknown",
       }))
+    };
+  });
+
+export const searchPosts = createServerFn({ method: "GET" })
+  .inputValidator((data: unknown) => z.object({
+    query: z.string().min(1),
+    limit: z.number().default(30).optional(),
+    page: z.number().default(1).optional(),
+  }).parse(data))
+  .handler(async ({ data }) => {
+    const { query: searchQuery, limit = 30, page = 1 } = data;
+    const offset = (page - 1) * limit;
+    const fetchLimit = limit + 1;
+    const searchLower = searchQuery.toLowerCase();
+    const searchPattern = `%${searchLower}%`;
+
+    const user = await getAuthFromRequest();
+    const userId = user?.id ?? null;
+
+    const userUpvotes = userId ? db.$with("user_upvotes").as(
+      db.select({
+        postId: upvotes.postId,
+      }).from(upvotes).where(
+        and(eq(upvotes.authorId, userId), isNull(upvotes.commentId))
+      )
+    ) : null;
+
+    const scopedDb = userUpvotes ? db.with(userUpvotes) : db;
+
+    let searchQuery_builder = scopedDb.select({
+      id: posts.id,
+      title: posts.title,
+      url: posts.url,
+      createdAt: posts.createdAt,
+      authorUsername: users.username,
+      authorId: users.id,
+      score: sql<number>`count(distinct ${upvotes.id})`.mapWith(Number),
+      commentCount: sql<number>`count(distinct ${comments.id})`.mapWith(Number),
+      userUpvoted: userUpvotes ? sql<boolean>`${userUpvotes.postId} is not null` : sql<boolean>`false`,
+    })
+    .from(posts)
+    .leftJoin(users, eq(posts.authorId, users.id))
+    .leftJoin(upvotes, eq(upvotes.postId, posts.id))
+    .leftJoin(comments, eq(comments.postId, posts.id))
+    .where(
+      or(
+        sql`lower(${posts.title}) LIKE ${searchPattern}`,
+        sql`lower(COALESCE(${posts.url}, '')) LIKE ${searchPattern}`
+      )
+    );
+
+    if (userUpvotes) {
+      searchQuery_builder = searchQuery_builder.leftJoin(userUpvotes, eq(userUpvotes.postId, posts.id));
+    }
+
+    searchQuery_builder = searchQuery_builder.groupBy(
+      posts.id,
+      users.id,
+      users.username,
+      ...(userUpvotes ? [userUpvotes.postId] : []),
+    )
+    .orderBy(desc(posts.createdAt))
+    .limit(fetchLimit)
+    .offset(offset);
+
+    const results = await searchQuery_builder;
+    
+    const hasMore = results.length > limit;
+    const slicedResults = hasMore ? results.slice(0, limit) : results;
+
+    return {
+        posts: slicedResults.map(post => ({
+            ...post,
+            by: post.authorUsername || post.authorId?.slice(0, 8) || "unknown",
+        })),
+        hasMore
     };
   });
