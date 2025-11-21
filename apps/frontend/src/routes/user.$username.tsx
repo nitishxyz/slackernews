@@ -46,6 +46,10 @@ function UserProfile() {
             <td className="align-top text-[#828282] w-24 pr-2">status:</td>
             <td className="align-top capitalize">{profileUser.stage}</td>
           </tr>
+          <tr className="h-6">
+            <td className="align-top text-[#828282] w-24 pr-2">karma:</td>
+            <td className="align-top">{profileUser.karma}</td>
+          </tr>
           {isOwner && (
             <tr className="h-6">
               <td className="align-top text-[#828282] w-24 pr-2">email:</td>

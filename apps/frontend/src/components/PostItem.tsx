@@ -1,8 +1,9 @@
 import { Link, useRouter } from '@tanstack/react-router'
 import { usePrivy } from '@privy-io/react-auth'
-import { toggleUpvote, fetchMyUpvotes } from '../server/upvotes'
-import { useEffect, useState } from 'react'
+import { toggleUpvote } from '../server/upvotes'
+import { useState } from 'react'
 import { cn } from '../lib/utils'
+import { useAuthToken } from '../hooks/useAuthToken'
 
 export interface PostProps {
   id: number
@@ -10,64 +11,50 @@ export interface PostProps {
   url?: string | null
   score: number
   by: string
-  time: string // or number/Date
+  time: string
   descendants: number
+  userUpvoted?: boolean
 }
 
 export function PostItem({ post, index }: { post: PostProps; index: number }) {
   const domain = post.url ? new URL(post.url).hostname.replace('www.', '') : null
-  const { getAccessToken, authenticated, login } = usePrivy();
+  const { authenticated, login } = usePrivy();
   const router = useRouter();
-  const [upvoted, setUpvoted] = useState(false);
-
-  // Simple client-side check for upvote status
-  // Note: This isn't optimal (N+1 on client if we did it naively), 
-  // but for a hackathon MVP, we can either fetch all user upvotes once and store in context,
-  // or just rely on the toggle state.
-  // Ideally, we'd fetch "myUpvotes" in the root layout and pass it down, or use a query.
-  // For now, I'll just handle the optimistic UI update + persisted state if we had a store.
-  // BUT, to actually show the purple arrow on load, we need the data.
-  // Let's try to fetch it if authenticated.
+  const { token, loading: tokenLoading } = useAuthToken();
   
-  useEffect(() => {
-      const checkUpvote = async () => {
-        if (authenticated) {
-            // Optimization: We should really fetch this ONCE for the page, not per item.
-            // But for now, let's just skip the initial check to avoid 30 requests.
-            // We will only set it to purple if we *know*? 
-            // Actually, let's not spam the server. 
-            // We'll just leave it grey unless the user clicks it in this session (optimistic)
-            // OR we implement a bulk fetch.
-            // User request: "only highlight when we've upvoted".
-            // I will implement a simple bulk fetch in the parent or just leave it for now 
-            // as "grey by default" satisfies the main visual complaint.
-        }
-      }
-      checkUpvote();
-  }, [authenticated]);
+  const [optimisticUpvote, setOptimisticUpvote] = useState<boolean | null>(null);
+  const baseUpvoted = post.userUpvoted ?? false;
+  const isUpvoted = optimisticUpvote !== null ? optimisticUpvote : baseUpvoted;
+  const scoreDelta = (isUpvoted ? 1 : 0) - (baseUpvoted ? 1 : 0);
+  const displayScore = post.score + scoreDelta;
 
   const handleUpvote = async () => {
     if (!authenticated) {
         login();
         return;
     }
-    const token = await getAccessToken();
-    if (!token) return;
 
-    // Optimistic update
-    const wasUpvoted = upvoted;
-    setUpvoted(!wasUpvoted);
+    if (!token || tokenLoading) {
+      console.error("No identity token available");
+      return;
+    }
+
+    const newValue = !isUpvoted;
+    setOptimisticUpvote(newValue);
 
     try {
         await toggleUpvote({
             data: {
                 postId: post.id,
-                authToken: token
-            }
+            },
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
         });
-        router.invalidate();
+        await router.invalidate();
     } catch (e) {
-        setUpvoted(wasUpvoted); // Revert
+        setOptimisticUpvote(null);
+        console.error(e);
     }
   }
 
@@ -78,10 +65,10 @@ export function PostItem({ post, index }: { post: PostProps; index: number }) {
       </div>
       <div className="flex flex-col">
         <div className="flex items-baseline gap-1">
-          <div className="p-1 -ml-1 cursor-pointer" title="upvote" onClick={handleUpvote}>
+          <div className="p-1 -ml-1 cursor-pointer" title={isUpvoted ? 'unvote' : 'upvote'} onClick={handleUpvote}>
              <span className={cn(
                  "arrow-up w-2.5 h-2.5 border-b-[8px] border-x-[4px] border-x-transparent mb-0.5 inline-block",
-                 upvoted ? "border-b-[#4c1d95]" : "border-b-[#c6c6c6]"
+                 isUpvoted ? "border-b-[#4c1d95]" : "border-b-[#c6c6c6]"
              )}></span>
           </div>
           {post.url ? (
@@ -104,12 +91,24 @@ export function PostItem({ post, index }: { post: PostProps; index: number }) {
           )}
         </div>
         <div className="text-[10px] text-[#828282] pl-4">
-          {post.score} points by{' '}
+          {displayScore} points by{' '}
           <a href={`/user/${post.by}`} className="hover:underline">
             {post.by}
           </a>{' '}
-          <span title={post.time}>{post.time}</span> |{' '}
-          <span className="cursor-pointer hover:underline">hide</span> |{' '}
+          <span title={post.time}>{post.time}</span>
+          {isUpvoted && (
+            <>
+              {' '}|{' '}
+              <button
+                type="button"
+                onClick={handleUpvote}
+                className="hover:underline text-[#828282]"
+              >
+                unvote
+              </button>
+            </>
+          )}{' '}
+          |{' '}
           <Link 
             to="/item/$id" 
             params={{ id: post.id.toString() }} 

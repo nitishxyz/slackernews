@@ -1,27 +1,24 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { db } from "../db/client";
-import { comments } from "@slackernews/core/db/schema";
-import { PrivyClient } from "@privy-io/server-auth";
-import { Resource } from "sst";
-
-const privy = new PrivyClient(
-  Resource.PrivyAppId.value,
-  Resource.PrivyAppSecret.value,
-);
+import { comments, upvotes } from "@slackernews/core/db/schema";
+import { getAuthFromRequest } from "./auth";
 
 const CommentSchema = z.object({
   postId: z.number(),
   parentId: z.number().optional(),
   content: z.string().min(1),
-  authToken: z.string()
 });
 
 export const submitComment = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => CommentSchema.parse(data))
   .handler(async ({ data }) => {
-    const claims = await privy.verifyAuthToken(data.authToken);
-    const userId = claims.userId;
+    const user = await getAuthFromRequest();
+    if (!user) {
+      throw new Error("Unauthorized");
+    }
+
+    const userId = user.id;
 
     try {
       const [comment] = await db.insert(comments).values({
@@ -32,6 +29,12 @@ export const submitComment = createServerFn({ method: "POST" })
         signature: "skipped", 
       }).returning();
       
+      await db.insert(upvotes).values({
+        authorId: userId,
+        commentId: comment.id,
+        signature: "skipped",
+      });
+
       return { success: true, comment };
     } catch (e) {
       console.error("Comment creation failed:", e);

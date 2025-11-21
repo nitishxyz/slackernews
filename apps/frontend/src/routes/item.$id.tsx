@@ -6,6 +6,7 @@ import { submitComment } from '../server/comments'
 import { timeAgo } from '../lib/utils'
 import { usePrivy } from '@privy-io/react-auth'
 import { useState } from 'react'
+import { useAuthToken } from '../hooks/useAuthToken'
 
 export const Route = createFileRoute('/item/$id')({
   component: ItemPage,
@@ -25,7 +26,8 @@ export const Route = createFileRoute('/item/$id')({
         ...c, 
         children: [],
         time: timeAgo(c.createdAt),
-        text: c.content 
+        text: c.content,
+        totalChildren: 0 // Initialize count
       };
     });
     
@@ -38,6 +40,26 @@ export const Route = createFileRoute('/item/$id')({
       }
     });
 
+    // Third pass: Calculate recursive descendant counts
+    // We can do this with a simple DFS post-order traversal logic
+    const calculateTotalChildren = (node: any): number => {
+        if (!node.children || node.children.length === 0) {
+            node.totalChildren = 0;
+            return 0;
+        }
+        
+        let sum = 0;
+        for (const child of node.children) {
+            // count the child itself + its children
+            sum += 1 + calculateTotalChildren(child);
+        }
+        
+        node.totalChildren = sum;
+        return sum;
+    };
+
+    roots.forEach(root => calculateTotalChildren(root));
+
     return { 
       post: {
         id: post.id,
@@ -47,7 +69,8 @@ export const Route = createFileRoute('/item/$id')({
         by: post.by,
         time: timeAgo(post.createdAt),
         descendants: post.commentCount,
-        text: post.content
+        text: post.content,
+        userUpvoted: post.userUpvoted,
       },
       comments: roots as CommentProps[]
     }
@@ -56,7 +79,8 @@ export const Route = createFileRoute('/item/$id')({
 
 function ItemPage() {
   const { post, comments } = Route.useLoaderData()
-  const { getAccessToken, authenticated, login } = usePrivy();
+  const { authenticated, login } = usePrivy();
+  const { token, loading: tokenLoading } = useAuthToken();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
 
@@ -73,15 +97,18 @@ function ItemPage() {
 
     setSubmitting(true);
     try {
-        const token = await getAccessToken();
-        if (!token) throw new Error("No token");
+        if (!token || tokenLoading) {
+          throw new Error("No identity token");
+        }
 
         await submitComment({
             data: {
                 postId: post.id,
                 content,
-                authToken: token
-            }
+            },
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
         });
         
         form.reset();
@@ -94,7 +121,7 @@ function ItemPage() {
   };
 
   return (
-    <div className="bg-background min-h-screen pt-2 px-2 md:px-4">
+    <div className="bg-[#f6f6ef] pt-2 px-2 md:px-4">
        <PostItem post={post} index={0} />
        
        {post.text && (

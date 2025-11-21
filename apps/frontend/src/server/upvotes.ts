@@ -1,31 +1,24 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { db } from "../db/client";
-import { upvotes } from "@slackernews/core/db/schema";
-import { PrivyClient } from "@privy-io/server-auth";
-import { Resource } from "sst";
-import { and, eq, isNull } from "drizzle-orm";
-
-const privy = new PrivyClient(
-  Resource.PrivyAppId.value,
-  Resource.PrivyAppSecret.value,
-);
+import { upvotes, posts, comments, users } from "@slackernews/core/db/schema";
+import { and, eq, isNull, sql } from "drizzle-orm";
+import { getAuthFromRequest } from "./auth";
 
 const UpvoteSchema = z.object({
   postId: z.number().optional(),
   commentId: z.number().optional(),
-  authToken: z.string()
-});
-
-const MyUpvotesSchema = z.object({
-    authToken: z.string()
 });
 
 export const toggleUpvote = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => UpvoteSchema.parse(data))
   .handler(async ({ data }) => {
-    const claims = await privy.verifyAuthToken(data.authToken);
-    const userId = claims.userId;
+    const user = await getAuthFromRequest();
+    if (!user) {
+      throw new Error("Unauthorized");
+    }
+
+    const userId = user.id;
 
     if (!data.postId && !data.commentId) {
       throw new Error("Must provide postId or commentId");
@@ -49,31 +42,49 @@ export const toggleUpvote = createServerFn({ method: "POST" })
     const [existing] = await db.select().from(upvotes).where(whereClause);
 
     if (existing) {
-      // Remove
       await db.delete(upvotes).where(eq(upvotes.id, existing.id));
+      
+      if (data.postId) {
+        const [post] = await db.select({ authorId: posts.authorId }).from(posts).where(eq(posts.id, data.postId));
+        if (post && post.authorId && post.authorId !== userId) {
+            await db.update(users)
+                .set({ karma: sql`${users.karma} - 1` })
+                .where(eq(users.id, post.authorId));
+        }
+      } else if (data.commentId) {
+        const [comment] = await db.select({ authorId: comments.authorId }).from(comments).where(eq(comments.id, data.commentId));
+        if (comment && comment.authorId && comment.authorId !== userId) {
+             await db.update(users)
+                .set({ karma: sql`${users.karma} - 1` })
+                .where(eq(users.id, comment.authorId));
+        }
+      }
+
       return { added: false };
     } else {
-      // Add
       await db.insert(upvotes).values({
         authorId: userId,
         postId: data.postId,
         commentId: data.commentId,
         signature: "skipped",
       });
+
+      if (data.postId) {
+        const [post] = await db.select({ authorId: posts.authorId }).from(posts).where(eq(posts.id, data.postId));
+        if (post && post.authorId && post.authorId !== userId) {
+            await db.update(users)
+                .set({ karma: sql`${users.karma} + 1` })
+                .where(eq(users.id, post.authorId));
+        }
+      } else if (data.commentId) {
+        const [comment] = await db.select({ authorId: comments.authorId }).from(comments).where(eq(comments.id, data.commentId));
+        if (comment && comment.authorId && comment.authorId !== userId) {
+             await db.update(users)
+                .set({ karma: sql`${users.karma} + 1` })
+                .where(eq(users.id, comment.authorId));
+        }
+      }
+
       return { added: true };
     }
   });
-
-export const fetchMyUpvotes = createServerFn({ method: "POST" })
-    .inputValidator((data: unknown) => MyUpvotesSchema.parse(data))
-    .handler(async ({ data }) => {
-        const claims = await privy.verifyAuthToken(data.authToken);
-        const userId = claims.userId;
-
-        const myUpvotes = await db.select({
-            postId: upvotes.postId,
-            commentId: upvotes.commentId
-        }).from(upvotes).where(eq(upvotes.authorId, userId));
-
-        return myUpvotes;
-    });

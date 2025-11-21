@@ -13,6 +13,7 @@ export const Route = createFileRoute('/')({
   validateSearch: (search) => PostSearchSchema.parse(search),
   loaderDeps: ({ search: { page, sort } }) => ({ page, sort }),
   loader: async ({ deps: { page, sort } }) => {
+    // Note: Can't use usePrivy in loader, will be handled client-side
     const { posts, hasMore } = await fetchPosts({ data: { page, sort } })
     return { 
       latestPosts: posts.map(p => ({
@@ -22,7 +23,8 @@ export const Route = createFileRoute('/')({
         score: p.score,
         by: p.by,
         time: timeAgo(p.createdAt),
-        descendants: p.commentCount
+        descendants: p.commentCount,
+        userUpvoted: p.userUpvoted
       })),
       hasMore
     }
@@ -33,6 +35,10 @@ export const Route = createFileRoute('/')({
 function App() {
   const { latestPosts, hasMore } = Route.useLoaderData()
   const { page } = Route.useSearch()
+
+  const handleLoadMore = async () => {
+    // Could refresh with auth token here if needed
+  }
 
   return (
     <div className="pt-2 pb-8">

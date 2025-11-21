@@ -21,7 +21,8 @@ export const Route = createFileRoute('/new')({
         score: p.score,
         by: p.by,
         time: timeAgo(p.createdAt),
-        descendants: p.commentCount
+        descendants: p.commentCount,
+        userUpvoted: p.userUpvoted
       })),
       hasMore
     }
@@ -34,7 +35,7 @@ function NewPage() {
   const { page } = Route.useSearch()
 
   return (
-    <div className="bg-background min-h-screen pt-2 pb-8">
+    <div className="bg-[#f6f6ef] pt-2 pb-8">
        <div className="space-y-0">
         {posts.map((post, i) => (
           <PostItem key={post.id} post={post} index={(page - 1) * 30 + i + 1} />

@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
+import { pgTable, timestamp, varchar, integer } from "drizzle-orm/pg-core";
 import { posts } from "./posts";
 import { comments } from "./comments";
 import { upvotes } from "./upvotes";
@@ -10,6 +10,7 @@ export const users = pgTable("users", {
   username: varchar("username").unique(),
   walletAddress: varchar("wallet_address"),
   stage: varchar("stage").notNull().default(""),
+  karma: integer("karma").notNull().default(0),
 
   // Database timestamps
   createdAt: timestamp("created_at").defaultNow().notNull(),

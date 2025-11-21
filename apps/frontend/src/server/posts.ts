@@ -2,31 +2,25 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { db } from "../db/client";
 import { posts, users, upvotes, comments } from "@slackernews/core/db/schema";
-import { PrivyClient } from "@privy-io/server-auth";
-import { Resource } from "sst";
-import { count, desc, eq, sql } from "drizzle-orm";
-import { getWebRequest } from "@tanstack/react-start/server";
-
-const privy = new PrivyClient(
-  Resource.PrivyAppId.value,
-  Resource.PrivyAppSecret.value,
-);
+import { desc, eq, sql, and, isNull } from "drizzle-orm";
+import { getAuthFromRequest } from "./auth";
 
 const PostSchema = z.object({
   title: z.string().min(1),
   url: z.string().optional(),
   content: z.string().optional(),
-  authToken: z.string()
 });
 
 export const submitPost = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => PostSchema.parse(data))
   .handler(async ({ data }) => {
-    // 1. Verify User
-    const claims = await privy.verifyAuthToken(data.authToken);
-    const userId = claims.userId;
+    const user = await getAuthFromRequest();
+    if (!user) {
+      throw new Error("Unauthorized");
+    }
 
-    // 2. Create Post
+    const userId = user.id;
+
     try {
       const [post] = await db.insert(posts).values({
         title: data.title,
@@ -36,6 +30,12 @@ export const submitPost = createServerFn({ method: "POST" })
         signature: "skipped",
       }).returning();
       
+      await db.insert(upvotes).values({
+        authorId: userId,
+        postId: post.id,
+        signature: "skipped",
+      });
+
       return { success: true, post };
     } catch (e) {
       console.error("DB Insert failed:", e);
@@ -52,11 +52,22 @@ export const fetchPosts = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { sort = "new", limit = 30, page = 1 } = data;
     const offset = (page - 1) * limit;
-
-    // Fetch limit + 1 to check if there are more pages
     const fetchLimit = limit + 1;
 
-    const query = db.select({
+    const user = await getAuthFromRequest();
+    const userId = user?.id ?? null;
+
+    const userUpvotes = userId ? db.$with("user_upvotes").as(
+      db.select({
+        postId: upvotes.postId,
+      }).from(upvotes).where(
+        and(eq(upvotes.authorId, userId), isNull(upvotes.commentId))
+      )
+    ) : null;
+
+    const scopedDb = userUpvotes ? db.with(userUpvotes) : db;
+
+    let query = scopedDb.select({
       id: posts.id,
       title: posts.title,
       url: posts.url,
@@ -65,12 +76,18 @@ export const fetchPosts = createServerFn({ method: "GET" })
       authorId: users.id,
       score: sql<number>`count(distinct ${upvotes.id})`.mapWith(Number),
       commentCount: sql<number>`count(distinct ${comments.id})`.mapWith(Number),
+      userUpvoted: userUpvotes ? sql<boolean>`${userUpvotes.postId} is not null` : sql<boolean>`false`,
     })
     .from(posts)
     .leftJoin(users, eq(posts.authorId, users.id))
     .leftJoin(upvotes, eq(upvotes.postId, posts.id))
-    .leftJoin(comments, eq(comments.postId, posts.id))
-    .groupBy(posts.id, users.id, users.username)
+    .leftJoin(comments, eq(comments.postId, posts.id));
+
+    if (userUpvotes) {
+      query = query.leftJoin(userUpvotes, eq(userUpvotes.postId, posts.id));
+    }
+
+    query = query.groupBy(posts.id, users.id, users.username, userUpvotes?.postId)
     .limit(fetchLimit)
     .offset(offset);
 
@@ -99,7 +116,20 @@ export const fetchPost = createServerFn({ method: "GET" })
     postId: z.number(),
   }).parse(data))
   .handler(async ({ data }) => {
-    const [post] = await db.select({
+    const user = await getAuthFromRequest();
+    const userId = user?.id ?? null;
+
+    const userUpvotes = userId ? db.$with("user_upvotes").as(
+      db.select({
+        postId: upvotes.postId,
+      }).from(upvotes).where(
+        and(eq(upvotes.authorId, userId), isNull(upvotes.commentId))
+      )
+    ) : null;
+
+    const scopedDb = userUpvotes ? db.with(userUpvotes) : db;
+
+    let postQuery = scopedDb.select({
       id: posts.id,
       title: posts.title,
       url: posts.url,
@@ -109,13 +139,21 @@ export const fetchPost = createServerFn({ method: "GET" })
       authorId: users.id,
       score: sql<number>`count(distinct ${upvotes.id})`.mapWith(Number),
       commentCount: sql<number>`count(distinct ${comments.id})`.mapWith(Number),
+      userUpvoted: userUpvotes ? sql<boolean>`${userUpvotes.postId} is not null` : sql<boolean>`false`,
     })
     .from(posts)
     .where(eq(posts.id, data.postId))
     .leftJoin(users, eq(posts.authorId, users.id))
     .leftJoin(upvotes, eq(upvotes.postId, posts.id))
-    .leftJoin(comments, eq(comments.postId, posts.id))
-    .groupBy(posts.id, users.id, users.username);
+    .leftJoin(comments, eq(comments.postId, posts.id));
+
+    if (userUpvotes) {
+      postQuery = postQuery.leftJoin(userUpvotes, eq(userUpvotes.postId, posts.id));
+    }
+
+    postQuery = postQuery.groupBy(posts.id, users.id, users.username, userUpvotes?.postId);
+
+    const [post] = await postQuery;
 
     if (!post) return null;
 

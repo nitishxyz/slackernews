@@ -1,72 +1,58 @@
-import { createServerFn } from "@tanstack/react-start";
-import { PrivyClient } from "@privy-io/server-auth";
+import { PrivyClient, type User } from "@privy-io/server-auth";
 import { Resource } from "sst";
-import { db } from "../db/client";
-import { users } from "@slackernews/core/db/schema";
+import { getRequest } from "@tanstack/react-start/server";
+import { AUTH_TOKEN_COOKIE, readCookieValue } from "../lib/auth";
 
-const privy = new PrivyClient(
-	Resource.PrivyAppId.value,
-	Resource.PrivyAppSecret.value,
+export const privy = new PrivyClient(
+  Resource.PrivyAppId.value,
+  Resource.PrivyAppSecret.value
 );
 
-export const syncUser = createServerFn({ method: "POST" })
-  .inputValidator((data: { token: string }) => data)
-  .handler(async ({ data }) => {
-		const { token } = data;
+const getTokenFromRequest = (request: Request): string | null => {
+  const authHeader = request.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.split(" ")[1];
+    if (token) {
+      return token;
+    }
+  }
 
-		try {
-			// Verify the token
-			const verifiedClaims = await privy.verifyAuthToken(token);
-			const userId = verifiedClaims.userId;
+  const cookieHeader = request.headers.get("cookie");
+  const cookieToken = readCookieValue(cookieHeader, AUTH_TOKEN_COOKIE);
+  if (cookieToken) {
+    return cookieToken;
+  }
 
-			// Get user details from Privy to ensure we have email etc
-			const user = await privy.getUser(userId);
+  return null;
+};
 
-			const email = user.email?.address;
-			// Fallback username generation
-			const username =
-				user.github?.username ||
-				user.google?.name ||
-				user.twitter?.username ||
-				user.discord?.username ||
-				email?.split("@")[0] ||
-				`user_${userId.slice(0, 8)}`;
+export const verifyAuth = async (request: Request): Promise<User | null> => {
+  const token = getTokenFromRequest(request);
 
-			if (!email) {
-				// For now, log error. In production, we might handle wallet-only users differently
-				// or schema should be updated.
-				console.error("No email found for user", userId);
-				// We can't insert without email per schema.
-				return { success: false, error: "Email required" };
-			}
+  if (!token) {
+    return null;
+  }
 
-      // Find primary Solana wallet
-      const solanaWallet = user.linkedAccounts.find(
-        (a) => a.type === "wallet" && a.chainType === "solana"
-      );
+  try {
+    return await getUserFromIdToken(token);
+  } catch (error) {
+    return null;
+  }
+};
 
-			// Upsert user
-			await db
-				.insert(users)
-				.values({
-					id: userId,
-					email: email,
-					username: username,
-          walletAddress: solanaWallet?.address,
-					stage: "user",
-				})
-				.onConflictDoUpdate({
-					target: users.id,
-					set: {
-            walletAddress: solanaWallet?.address, // Always update wallet if it changes
-						updatedAt: new Date(),
-						// We don't overwrite email/username on every sync to allow user changes if we support that
-					},
-				});
+export const getUserFromIdToken = async (token: string): Promise<User | null> => {
+  try {
+    return await privy.getUserFromIdToken(token);
+  } catch (error) {
+    return null;
+  }
+};
 
-			return { success: true, userId };
-		} catch (error) {
-			console.error("Auth sync error:", error);
-			throw error;
-		}
-	});
+export const getAuthFromRequest = async (): Promise<User | null> => {
+  try {
+    const request = getRequest();
+    return verifyAuth(request);
+  } catch (e) {
+    return null;
+  }
+};

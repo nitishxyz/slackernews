@@ -2,16 +2,18 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { usePrivy } from '@privy-io/react-auth'
 import { useState } from 'react'
 import { submitPost } from '../server/posts'
+import { useAuthToken } from '../hooks/useAuthToken'
 
 export const Route = createFileRoute('/submit')({
   component: SubmitPage,
 })
 
 function SubmitPage() {
- const { authenticated, getAccessToken } = usePrivy()
+  const { authenticated, login } = usePrivy()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { token, loading: tokenLoading } = useAuthToken()
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -29,23 +31,26 @@ function SubmitPage() {
       return
     }
 
-   try {
-      // 1. Get Auth Token
-      const authToken = await getAccessToken()
-      if (!authToken) throw new Error("Failed to get auth token")
+    if (!token || tokenLoading) {
+      setError("Failed to get auth token")
+      setLoading(false)
+      return
+    }
 
-     // 2. Submit
+    try {
       const result = await submitPost({ 
         data: {
           title,
           url,
           content,
-          authToken
-        }
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       })
       
       if (result.success) {
-        navigate({ to: '/' }) // Redirect to home
+        navigate({ to: '/' })
       }
     } catch (err: any) {
       console.error(err)
@@ -99,7 +104,7 @@ function SubmitPage() {
           <span className="w-16"></span>
           <button 
             type="submit" 
-            disabled={loading}
+            disabled={loading || !token || tokenLoading}
             className="bg-background border border-gray-400 px-4 py-1 font-medium text-black hover:border-black rounded-sm disabled:opacity-50"
           >
             {loading ? 'processing...' : 'submit'}

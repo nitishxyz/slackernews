@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { usePrivy } from '@privy-io/react-auth'
 import { useRouter } from '@tanstack/react-router'
 import { submitComment } from '../server/comments'
+import { useAuthToken } from '../hooks/useAuthToken'
 
 export interface CommentProps {
     id: number
@@ -11,29 +12,42 @@ export interface CommentProps {
     postId: number
     parentId: number | null
     children: CommentProps[]
+    totalChildren?: number
 }
 
 export function CommentItem({ comment }: { comment: CommentProps }) {
   const [replying, setReplying] = useState(false);
-  const { getAccessToken } = usePrivy();
+  const [collapsed, setCollapsed] = useState(false);
+  const { authenticated, login } = usePrivy();
   const router = useRouter();
+  const { token } = useAuthToken();
 
   const handleReply = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    if (!authenticated) {
+      login();
+      return;
+    }
+
+    if (!token) {
+      console.error("No auth token available");
+      return;
+    }
+
     const form = e.currentTarget;
     const content = (form.elements.namedItem('content') as HTMLTextAreaElement).value;
     if (!content) return;
-
-    const token = await getAccessToken();
-    if (!token) return; // Handle auth error
 
     await submitComment({
       data: {
         postId: comment.postId,
         parentId: comment.id,
         content,
-        authToken: token
-      }
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
 
     form.reset();
@@ -41,14 +55,21 @@ export function CommentItem({ comment }: { comment: CommentProps }) {
     router.invalidate();
   };
 
+  const hiddenCount = 1 + (comment.totalChildren || 0);
+
   return (
     <div className="mb-2 text-[13px]">
         <div className="text-[#828282] mb-1">
-            <span className="cursor-pointer hover:underline text-black font-medium">{comment.by}</span>{' '}
+            <span className="cursor-pointer hover:underline text-black font-medium" onClick={() => setCollapsed(!collapsed)}>{comment.by}</span>{' '}
             <span>{comment.time}</span>{' '}
-            <span className="hover:underline cursor-pointer">[-]</span>
-            <button onClick={() => setReplying(!replying)} className="ml-2 hover:underline underline text-xs">reply</button>
+            <span className="hover:underline cursor-pointer" onClick={() => setCollapsed(!collapsed)}>
+                {collapsed ? `[+${hiddenCount}]` : '[-]'}
+            </span>
+            {!collapsed && <button onClick={() => setReplying(!replying)} className="ml-2 hover:underline underline text-xs">reply</button>}
         </div>
+        
+        {collapsed ? null : (
+        <>
         <div className="text-black pl-1">
             {comment.text}
         </div>
@@ -68,6 +89,8 @@ export function CommentItem({ comment }: { comment: CommentProps }) {
                 <CommentItem key={child.id} comment={child} />
             ))}
         </div>
+        </>
+        )}
     </div>
   )
 }

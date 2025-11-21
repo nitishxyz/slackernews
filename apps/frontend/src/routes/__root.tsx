@@ -9,7 +9,7 @@ import { TanStackDevtools } from "@tanstack/react-devtools";
 import { PrivyProvider } from "@privy-io/react-auth";
 import { createSolanaRpc, createSolanaRpcSubscriptions } from "@solana/kit";
 import { getPrivyAppId, getHeliusRpcUrl, getEnv } from "../server/env";
-import { AuthSync } from "../components/AuthSync";
+import { AuthProvider } from "../components/AuthSync";
 
 import Header from "../components/Header";
 
@@ -108,24 +108,25 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             solanaClusters: [solanaConfig.cluster],
           }}
         >
-          <div className="md:w-[85%] w-full mx-auto bg-[#f6f6ef]">
-            <Header />
-            <main className="py-2">{children}</main>
-          </div>
-          <AuthSync />
-          <TanStackDevtools
-            config={{
-              position: "bottom-right",
-            }}
-            plugins={[
-              {
-                name: "Tanstack Router",
-                render: <TanStackRouterDevtoolsPanel />,
-              },
-              TanStackQueryDevtools,
-              StoreDevtools,
-            ]}
-          />
+          <AuthProvider>
+            <div className="md:w-[85%] w-full mx-auto bg-[#f6f6ef]">
+              <Header />
+              <main className="py-2">{children}</main>
+            </div>
+            <TanStackDevtools
+              config={{
+                position: "bottom-right",
+              }}
+              plugins={[
+                {
+                  name: "Tanstack Router",
+                  render: <TanStackRouterDevtoolsPanel />,
+                },
+                TanStackQueryDevtools,
+                StoreDevtools,
+              ]}
+            />
+          </AuthProvider>
         </PrivyProvider>
         <Scripts />
       </body>
