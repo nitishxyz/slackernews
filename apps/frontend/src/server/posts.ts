@@ -87,7 +87,12 @@ export const fetchPosts = createServerFn({ method: "GET" })
       query = query.leftJoin(userUpvotes, eq(userUpvotes.postId, posts.id));
     }
 
-    query = query.groupBy(posts.id, users.id, users.username, userUpvotes?.postId)
+    query = query.groupBy(
+      posts.id,
+      users.id,
+      users.username,
+      ...(userUpvotes ? [userUpvotes.postId] : []),
+    )
     .limit(fetchLimit)
     .offset(offset);
 
@@ -151,7 +156,12 @@ export const fetchPost = createServerFn({ method: "GET" })
       postQuery = postQuery.leftJoin(userUpvotes, eq(userUpvotes.postId, posts.id));
     }
 
-    postQuery = postQuery.groupBy(posts.id, users.id, users.username, userUpvotes?.postId);
+    postQuery = postQuery.groupBy(
+      posts.id,
+      users.id,
+      users.username,
+      ...(userUpvotes ? [userUpvotes.postId] : []),
+    );
 
     const [post] = await postQuery;
 

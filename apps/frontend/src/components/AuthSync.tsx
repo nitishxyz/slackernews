@@ -9,6 +9,7 @@ import {
 	useState,
 } from "react";
 import { AUTH_TOKEN_COOKIE } from "../lib/auth";
+import { syncUserAccount } from "../server/users";
 
 type AuthContextValue = {
 	token: string | null;
@@ -39,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const [authResolved, setAuthResolved] = useState(false);
 	const [hydrated, setHydrated] = useState(false);
 	const lastTokenRef = useRef<string | null>(null);
+	const syncedRef = useRef<string | null>(null);
 
 	useEffect(() => {
 		setHydrated(true);
@@ -94,6 +96,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		lastTokenRef.current = token;
 		router.invalidate();
 	}, [authResolved, loading, router, token]);
+
+	useEffect(() => {
+		const syncUser = async () => {
+			if (!token || !authenticated || loading) {
+				return;
+			}
+
+			if (syncedRef.current === token) return;
+			try {
+				await syncUserAccount({
+					headers: { Authorization: `Bearer ${token}` },
+				});
+				syncedRef.current = token;
+			} catch (e) {
+				console.error("Failed to sync user account", e);
+			}
+		};
+
+		syncUser();
+	}, [authenticated, loading, token]);
 
 	const value = useMemo<AuthContextValue>(
 		() => ({

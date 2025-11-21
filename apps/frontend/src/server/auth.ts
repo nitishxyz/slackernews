@@ -2,6 +2,9 @@ import { PrivyClient, type User } from "@privy-io/server-auth";
 import { Resource } from "sst";
 import { getRequest } from "@tanstack/react-start/server";
 import { AUTH_TOKEN_COOKIE, readCookieValue } from "../lib/auth";
+import { db } from "../db/client";
+import { users } from "@slackernews/core/db/schema";
+import { eq } from "drizzle-orm";
 
 export const privy = new PrivyClient(
   Resource.PrivyAppId.value,
@@ -48,10 +51,64 @@ export const getUserFromIdToken = async (token: string): Promise<User | null> =>
   }
 };
 
+export const ensureUserExists = async (user: User) => {
+  // Basic mapping from Privy user -> local user record
+  const anyUser = user as any;
+
+  const email =
+    user.email?.address ||
+    anyUser.google?.email ||
+    anyUser.github?.email ||
+    `${user.id}@privy.local`;
+
+  const username =
+    anyUser.github?.username ||
+    anyUser.google?.name ||
+    anyUser.twitter?.username ||
+    anyUser.discord?.username ||
+    email.split("@")[0] ||
+    `user_${user.id.slice(0, 8)}`;
+
+  const walletAddress =
+    anyUser.wallet?.address ||
+    anyUser.wallet?.address?.toString?.() ||
+    anyUser.wallets?.[0]?.address ||
+    null;
+
+  // Try to upsert on id; if the record exists, update email/wallet/updatedAt
+  const existing = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.id, user.id));
+
+  if (existing.length === 0) {
+    await db.insert(users).values({
+      id: user.id,
+      email,
+      username,
+      walletAddress: walletAddress ?? undefined,
+      stage: "active",
+    }).onConflictDoNothing({ target: users.id });
+  } else {
+    await db
+      .update(users)
+      .set({
+        email,
+        username,
+        walletAddress: walletAddress ?? undefined,
+      })
+      .where(eq(users.id, user.id));
+  }
+};
+
 export const getAuthFromRequest = async (): Promise<User | null> => {
   try {
     const request = getRequest();
-    return verifyAuth(request);
+    const user = await verifyAuth(request);
+    if (user) {
+      await ensureUserExists(user);
+    }
+    return user;
   } catch (e) {
     return null;
   }
