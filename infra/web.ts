@@ -3,6 +3,7 @@ import {
   databaseUrl,
   heliusRpcUrl,
   platformSigner,
+  platformWallet,
   privyAppId,
   privyAppSecret,
 } from "./secrets";
@@ -11,7 +12,14 @@ const redirects = [`www.${domains.web}`];
 
 export const web = new sst.aws.TanStackStart("SlackerNewsWeb", {
   path: "apps/frontend",
-  link: [databaseUrl, heliusRpcUrl, privyAppId, privyAppSecret, platformSigner],
+  link: [
+    databaseUrl,
+    heliusRpcUrl,
+    privyAppId,
+    privyAppSecret,
+    platformSigner,
+    platformWallet,
+  ],
   domain: {
     name: domains.web,
     redirects: redirects,
@@ -19,7 +27,7 @@ export const web = new sst.aws.TanStackStart("SlackerNewsWeb", {
   },
   environment: {
     VITE_ENV: $app.stage === "production" ? "production" : "development",
-    VITE_HELIUS_RPC_URL: heliusRpcUrl.value
+    VITE_HELIUS_RPC_URL: heliusRpcUrl.value,
   },
   dev: {
     command: "bun run dev",

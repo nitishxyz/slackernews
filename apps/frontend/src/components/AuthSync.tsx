@@ -134,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		<AuthContext.Provider value={value}>
 			{shouldGateUi ? (
 				<div className="p-4 text-center text-sm text-[#828282]">
-					Preparing authentication...
+					Loading...
 				</div>
 			) : (
 				children

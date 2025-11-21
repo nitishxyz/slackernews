@@ -9,3 +9,5 @@ export const heliusRpcUrl = new sst.Secret("HeliusRpcUrl");
 export const heliusApiKey = new sst.Secret("HeliusApiKey");
 
 export const platformSigner = new sst.Secret("PlatformSigner");
+
+export const platformWallet = new sst.Secret("PlatformWallet");

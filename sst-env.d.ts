@@ -21,6 +21,10 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "PlatformWallet": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "PrivyAppId": {
       "type": "sst.sst.Secret"
       "value": string
