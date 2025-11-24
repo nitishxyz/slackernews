@@ -114,3 +114,70 @@ export const fetchComments = createServerFn({ method: "GET" })
         hasMore
     };
   });
+
+export const fetchUserComments = createServerFn({ method: "GET" })
+  .inputValidator((data: unknown) => z.object({
+    username: z.string().min(1),
+    limit: z.number().default(30).optional(),
+    page: z.number().default(1).optional(),
+  }).parse(data))
+  .handler(async ({ data }) => {
+    const { username, limit = 30, page = 1 } = data;
+    const offset = (page - 1) * limit;
+    const fetchLimit = limit + 1;
+
+    // First, get the user by username to get their ID
+    const [targetUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username))
+      .limit(1);
+
+    if (!targetUser) {
+      return {
+        comments: [],
+        hasMore: false,
+      };
+    }
+
+    // Match the exact pattern from fetchUserPosts
+    let baseQuery = db.select({
+      id: comments.id,
+      content: comments.content,
+      createdAt: comments.createdAt,
+      postId: comments.postId,
+      postTitle: posts.title,
+      authorId: comments.authorId,
+      score: sql<number>`count(distinct ${upvotes.id})`.mapWith(Number),
+    })
+    .from(comments)
+    .where(eq(comments.authorId, targetUser.id))
+    .leftJoin(posts, eq(comments.postId, posts.id))
+    .leftJoin(upvotes, eq(upvotes.commentId, comments.id));
+
+    const query = baseQuery.groupBy(
+      comments.id,
+      comments.content,
+      comments.createdAt,
+      comments.postId,
+      posts.title,
+    )
+    .orderBy(desc(comments.createdAt))
+    .limit(fetchLimit)
+    .offset(offset);
+
+    const results = await query;
+    
+    const hasMore = results.length > limit;
+    const slicedResults = hasMore ? results.slice(0, limit) : results;
+
+    return {
+        comments: slicedResults.map(comment => ({
+            ...comment,
+            by: comment.authorId?.slice(0, 8) || "unknown",
+            username: null,
+            userUpvoted: false,
+        })),
+        hasMore
+    };
+  });

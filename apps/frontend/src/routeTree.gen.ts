@@ -15,11 +15,14 @@ import { Route as NewRouteImport } from './routes/new'
 import { Route as CommentsRouteImport } from './routes/comments'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UserUsernameRouteImport } from './routes/user.$username'
+import { Route as SUsernameRouteImport } from './routes/s.$username'
 import { Route as ItemIdRouteImport } from './routes/item.$id'
+import { Route as FUsernameRouteImport } from './routes/f.$username'
 import { Route as DemoTanstackQueryRouteImport } from './routes/demo/tanstack-query'
 import { Route as DemoStoreRouteImport } from './routes/demo/store'
 import { Route as DemoDbChatApiRouteImport } from './routes/demo/db-chat-api'
 import { Route as DemoDbChatRouteImport } from './routes/demo/db-chat'
+import { Route as CUsernameRouteImport } from './routes/c.$username'
 import { Route as DemoStartServerFuncsRouteImport } from './routes/demo/start.server-funcs'
 import { Route as DemoStartApiRequestRouteImport } from './routes/demo/start.api-request'
 import { Route as DemoFormSimpleRouteImport } from './routes/demo/form.simple'
@@ -61,9 +64,19 @@ const UserUsernameRoute = UserUsernameRouteImport.update({
   path: '/user/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SUsernameRoute = SUsernameRouteImport.update({
+  id: '/s/$username',
+  path: '/s/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ItemIdRoute = ItemIdRouteImport.update({
   id: '/item/$id',
   path: '/item/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FUsernameRoute = FUsernameRouteImport.update({
+  id: '/f/$username',
+  path: '/f/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DemoTanstackQueryRoute = DemoTanstackQueryRouteImport.update({
@@ -84,6 +97,11 @@ const DemoDbChatApiRoute = DemoDbChatApiRouteImport.update({
 const DemoDbChatRoute = DemoDbChatRouteImport.update({
   id: '/demo/db-chat',
   path: '/demo/db-chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CUsernameRoute = CUsernameRouteImport.update({
+  id: '/c/$username',
+  path: '/c/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DemoStartServerFuncsRoute = DemoStartServerFuncsRouteImport.update({
@@ -143,11 +161,14 @@ export interface FileRoutesByFullPath {
   '/new': typeof NewRoute
   '/search': typeof SearchRoute
   '/submit': typeof SubmitRoute
+  '/c/$username': typeof CUsernameRoute
   '/demo/db-chat': typeof DemoDbChatRoute
   '/demo/db-chat-api': typeof DemoDbChatApiRoute
   '/demo/store': typeof DemoStoreRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/f/$username': typeof FUsernameRoute
   '/item/$id': typeof ItemIdRoute
+  '/s/$username': typeof SUsernameRoute
   '/user/$username': typeof UserUsernameRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
@@ -166,11 +187,14 @@ export interface FileRoutesByTo {
   '/new': typeof NewRoute
   '/search': typeof SearchRoute
   '/submit': typeof SubmitRoute
+  '/c/$username': typeof CUsernameRoute
   '/demo/db-chat': typeof DemoDbChatRoute
   '/demo/db-chat-api': typeof DemoDbChatApiRoute
   '/demo/store': typeof DemoStoreRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/f/$username': typeof FUsernameRoute
   '/item/$id': typeof ItemIdRoute
+  '/s/$username': typeof SUsernameRoute
   '/user/$username': typeof UserUsernameRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
@@ -190,11 +214,14 @@ export interface FileRoutesById {
   '/new': typeof NewRoute
   '/search': typeof SearchRoute
   '/submit': typeof SubmitRoute
+  '/c/$username': typeof CUsernameRoute
   '/demo/db-chat': typeof DemoDbChatRoute
   '/demo/db-chat-api': typeof DemoDbChatApiRoute
   '/demo/store': typeof DemoStoreRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/f/$username': typeof FUsernameRoute
   '/item/$id': typeof ItemIdRoute
+  '/s/$username': typeof SUsernameRoute
   '/user/$username': typeof UserUsernameRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
@@ -215,11 +242,14 @@ export interface FileRouteTypes {
     | '/new'
     | '/search'
     | '/submit'
+    | '/c/$username'
     | '/demo/db-chat'
     | '/demo/db-chat-api'
     | '/demo/store'
     | '/demo/tanstack-query'
+    | '/f/$username'
     | '/item/$id'
+    | '/s/$username'
     | '/user/$username'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
@@ -238,11 +268,14 @@ export interface FileRouteTypes {
     | '/new'
     | '/search'
     | '/submit'
+    | '/c/$username'
     | '/demo/db-chat'
     | '/demo/db-chat-api'
     | '/demo/store'
     | '/demo/tanstack-query'
+    | '/f/$username'
     | '/item/$id'
+    | '/s/$username'
     | '/user/$username'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
@@ -261,11 +294,14 @@ export interface FileRouteTypes {
     | '/new'
     | '/search'
     | '/submit'
+    | '/c/$username'
     | '/demo/db-chat'
     | '/demo/db-chat-api'
     | '/demo/store'
     | '/demo/tanstack-query'
+    | '/f/$username'
     | '/item/$id'
+    | '/s/$username'
     | '/user/$username'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
@@ -285,11 +321,14 @@ export interface RootRouteChildren {
   NewRoute: typeof NewRoute
   SearchRoute: typeof SearchRoute
   SubmitRoute: typeof SubmitRoute
+  CUsernameRoute: typeof CUsernameRoute
   DemoDbChatRoute: typeof DemoDbChatRoute
   DemoDbChatApiRoute: typeof DemoDbChatApiRoute
   DemoStoreRoute: typeof DemoStoreRoute
   DemoTanstackQueryRoute: typeof DemoTanstackQueryRoute
+  FUsernameRoute: typeof FUsernameRoute
   ItemIdRoute: typeof ItemIdRoute
+  SUsernameRoute: typeof SUsernameRoute
   UserUsernameRoute: typeof UserUsernameRoute
   DemoApiNamesRoute: typeof DemoApiNamesRoute
   DemoApiTqTodosRoute: typeof DemoApiTqTodosRoute
@@ -347,11 +386,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UserUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/s/$username': {
+      id: '/s/$username'
+      path: '/s/$username'
+      fullPath: '/s/$username'
+      preLoaderRoute: typeof SUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/item/$id': {
       id: '/item/$id'
       path: '/item/$id'
       fullPath: '/item/$id'
       preLoaderRoute: typeof ItemIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/f/$username': {
+      id: '/f/$username'
+      path: '/f/$username'
+      fullPath: '/f/$username'
+      preLoaderRoute: typeof FUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo/tanstack-query': {
@@ -380,6 +433,13 @@ declare module '@tanstack/react-router' {
       path: '/demo/db-chat'
       fullPath: '/demo/db-chat'
       preLoaderRoute: typeof DemoDbChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/c/$username': {
+      id: '/c/$username'
+      path: '/c/$username'
+      fullPath: '/c/$username'
+      preLoaderRoute: typeof CUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo/start/server-funcs': {
@@ -461,11 +521,14 @@ const rootRouteChildren: RootRouteChildren = {
   NewRoute: NewRoute,
   SearchRoute: SearchRoute,
   SubmitRoute: SubmitRoute,
+  CUsernameRoute: CUsernameRoute,
   DemoDbChatRoute: DemoDbChatRoute,
   DemoDbChatApiRoute: DemoDbChatApiRoute,
   DemoStoreRoute: DemoStoreRoute,
   DemoTanstackQueryRoute: DemoTanstackQueryRoute,
+  FUsernameRoute: FUsernameRoute,
   ItemIdRoute: ItemIdRoute,
+  SUsernameRoute: SUsernameRoute,
   UserUsernameRoute: UserUsernameRoute,
   DemoApiNamesRoute: DemoApiNamesRoute,
   DemoApiTqTodosRoute: DemoApiTqTodosRoute,
