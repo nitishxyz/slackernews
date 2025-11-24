@@ -11,13 +11,6 @@ export const show = pgTable("show", {
   postId: integer("post_id").references(() => posts.id),
   content: text("content"), // post title if posted, comment if commented, comment if comment upvoted or post title if post upvoted
   createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => {
-  return {
-    userIdIdx: index("show_user_idx").on(table.userId),
-    postIdIdx: index("show_post_idx").on(table.postId),
-    createdAtIdx: index("show_created_at_idx").on(table.createdAt),
-    activityIdx: index("show_activity_idx").on(table.activity),
-  };
 });
 
 export const showRelations = relations(show, ({ one }) => ({
