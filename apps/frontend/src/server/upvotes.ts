@@ -4,6 +4,7 @@ import { db } from "../db/client";
 import { upvotes, posts, comments, users } from "@slackernews/core/db/schema";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { getAuthFromRequest } from "./auth";
+import { insertHistoryRecord } from "./history";
 
 const UpvoteSchema = z.object({
   postId: z.number().optional(),
@@ -70,18 +71,58 @@ export const toggleUpvote = createServerFn({ method: "POST" })
       });
 
       if (data.postId) {
-        const [post] = await db.select({ authorId: posts.authorId }).from(posts).where(eq(posts.id, data.postId));
+        const [post] = await db.select({ 
+          authorId: posts.authorId,
+          title: posts.title 
+        }).from(posts).where(eq(posts.id, data.postId));
+        
         if (post && post.authorId && post.authorId !== userId) {
             await db.update(users)
                 .set({ karma: sql`${users.karma} + 1` })
                 .where(eq(users.id, post.authorId));
         }
+
+        // Insert history record for post upvote
+        if (post) {
+          await insertHistoryRecord(
+            userId,
+            "upvoted",
+            data.postId,
+            post.title
+          );
+        }
       } else if (data.commentId) {
-        const [comment] = await db.select({ authorId: comments.authorId }).from(comments).where(eq(comments.id, data.commentId));
+        const [comment] = await db.select({ 
+          authorId: comments.authorId,
+          postId: comments.postId,
+          content: comments.content 
+        }).from(comments).where(eq(comments.id, data.commentId));
+        
         if (comment && comment.authorId && comment.authorId !== userId) {
              await db.update(users)
                 .set({ karma: sql`${users.karma} + 1` })
                 .where(eq(users.id, comment.authorId));
+        }
+
+        // Get post title for show record
+        let postTitle: string | null = null;
+        if (comment?.postId) {
+          const [post] = await db
+            .select({ title: posts.title })
+            .from(posts)
+            .where(eq(posts.id, comment.postId))
+            .limit(1);
+          postTitle = post?.title ?? null;
+        }
+
+        // Insert history record for comment upvote
+        if (comment) {
+          await insertHistoryRecord(
+            userId,
+            "upvoted",
+            comment.postId,
+            comment.content
+          );
         }
       }
 

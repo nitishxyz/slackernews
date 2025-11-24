@@ -15,7 +15,7 @@ export default function Header() {
   const navLinks: { name: string, to: string }[] = [
     { name: 'new', to: '/new' },
     { name: 'comments', to: '/comments' },
-    { name: 'show', to: '/show' },
+    { name: 'history', to: '/history' },
     { name: 'submit', to: '/submit' },
   ]
 

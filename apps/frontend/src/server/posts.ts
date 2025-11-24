@@ -4,6 +4,7 @@ import { db } from "../db/client";
 import { posts, users, upvotes, comments } from "@slackernews/core/db/schema";
 import { desc, eq, sql, and, isNull, or, inArray } from "drizzle-orm";
 import { getAuthFromRequest } from "./auth";
+import { insertHistoryRecord } from "./history";
 
 const PostSchema = z.object({
   title: z.string().min(1),
@@ -35,6 +36,14 @@ export const submitPost = createServerFn({ method: "POST" })
         postId: post.id,
         signature: "skipped",
       });
+
+      // Insert history record for post submission
+      await insertHistoryRecord(
+        userId,
+        "posted",
+        post.id,
+        post.title
+      );
 
       return { success: true, post };
     } catch (e) {

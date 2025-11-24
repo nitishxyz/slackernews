@@ -4,6 +4,7 @@ import { db } from "../db/client";
 import { comments, upvotes, users, posts } from "@slackernews/core/db/schema";
 import { getAuthFromRequest } from "./auth";
 import { desc, eq, sql, and, isNull } from "drizzle-orm";
+import { insertHistoryRecord } from "./history";
 
 const CommentSchema = z.object({
   postId: z.number(),
@@ -32,9 +33,18 @@ export const submitComment = createServerFn({ method: "POST" })
       
       await db.insert(upvotes).values({
         authorId: userId,
+        postId: data.postId,
         commentId: comment.id,
         signature: "skipped",
       });
+
+      // Insert history record for comment submission
+      await insertHistoryRecord(
+        userId,
+        "commented",
+        data.postId,
+        data.content
+      );
 
       return { success: true, comment };
     } catch (e) {
@@ -60,7 +70,7 @@ export const fetchComments = createServerFn({ method: "GET" })
       db.select({
         commentId: upvotes.commentId,
       }).from(upvotes).where(
-        and(eq(upvotes.authorId, userId), isNull(upvotes.postId))
+        and(eq(upvotes.authorId, userId), sql`${upvotes.commentId} is not null`)
       )
     ) : null;
 
