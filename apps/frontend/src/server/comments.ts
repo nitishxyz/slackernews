@@ -150,8 +150,20 @@ export const fetchUserComments = createServerFn({ method: "GET" })
       };
     }
 
-    // Match the exact pattern from fetchUserPosts
-    let baseQuery = db.select({
+    const user = await getAuthFromRequest();
+    const userId = user?.id ?? null;
+
+    const userUpvotes = userId ? db.$with("user_upvotes").as(
+      db.select({
+        commentId: upvotes.commentId,
+      }).from(upvotes).where(
+        and(eq(upvotes.authorId, userId), sql`${upvotes.commentId} is not null`)
+      )
+    ) : null;
+
+    const scopedDb = userUpvotes ? db.with(userUpvotes) : db;
+
+    let baseQuery = scopedDb.select({
       id: comments.id,
       content: comments.content,
       createdAt: comments.createdAt,
@@ -159,11 +171,16 @@ export const fetchUserComments = createServerFn({ method: "GET" })
       postTitle: posts.title,
       authorId: comments.authorId,
       score: sql<number>`count(distinct ${upvotes.id})`.mapWith(Number),
+      userUpvoted: userUpvotes ? sql<boolean>`${userUpvotes.commentId} is not null` : sql<boolean>`false`,
     })
     .from(comments)
     .where(eq(comments.authorId, targetUser.id))
     .leftJoin(posts, eq(comments.postId, posts.id))
     .leftJoin(upvotes, eq(upvotes.commentId, comments.id));
+
+    if (userUpvotes) {
+      baseQuery = baseQuery.leftJoin(userUpvotes, eq(userUpvotes.commentId, comments.id));
+    }
 
     const query = baseQuery.groupBy(
       comments.id,
@@ -171,6 +188,7 @@ export const fetchUserComments = createServerFn({ method: "GET" })
       comments.createdAt,
       comments.postId,
       posts.title,
+      ...(userUpvotes ? [userUpvotes.commentId] : [])
     )
     .orderBy(desc(comments.createdAt))
     .limit(fetchLimit)
@@ -186,7 +204,7 @@ export const fetchUserComments = createServerFn({ method: "GET" })
             ...comment,
             by: comment.authorId?.slice(0, 8) || "unknown",
             username: null,
-            userUpvoted: false,
+            userUpvoted: comment.userUpvoted,
         })),
         hasMore
     };

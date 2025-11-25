@@ -176,7 +176,17 @@ export const fetchPost = createServerFn({ method: "GET" })
 
     if (!post) return null;
 
-    const allComments = await db.select({
+    const userCommentUpvotes = userId ? db.$with("user_comment_upvotes").as(
+      db.select({
+        commentId: upvotes.commentId,
+      }).from(upvotes).where(
+        and(eq(upvotes.authorId, userId), sql`${upvotes.commentId} is not null`)
+      )
+    ) : null;
+
+    const scopedCommentsDb = userCommentUpvotes ? db.with(userCommentUpvotes) : db;
+
+    let commentsQuery = scopedCommentsDb.select({
       id: comments.id,
       postId: comments.postId,
       content: comments.content,
@@ -185,13 +195,25 @@ export const fetchPost = createServerFn({ method: "GET" })
       authorUsername: users.username,
       authorId: users.id,
       score: sql<number>`count(distinct ${upvotes.id})`.mapWith(Number),
+      userUpvoted: userCommentUpvotes ? sql<boolean>`${userCommentUpvotes.commentId} is not null` : sql<boolean>`false`,
     })
     .from(comments)
     .where(eq(comments.postId, data.postId))
     .leftJoin(users, eq(comments.authorId, users.id))
-    .leftJoin(upvotes, eq(upvotes.commentId, comments.id))
-    .groupBy(comments.id, users.id, users.username)
-    .orderBy(desc(comments.createdAt));
+    .leftJoin(upvotes, eq(upvotes.commentId, comments.id));
+
+    if (userCommentUpvotes) {
+      commentsQuery = commentsQuery.leftJoin(userCommentUpvotes, eq(userCommentUpvotes.commentId, comments.id));
+    }
+
+    const allComments = await commentsQuery
+      .groupBy(
+        comments.id,
+        users.id,
+        users.username,
+        ...(userCommentUpvotes ? [userCommentUpvotes.commentId] : [])
+      )
+      .orderBy(desc(comments.createdAt));
 
     return {
       ...post,

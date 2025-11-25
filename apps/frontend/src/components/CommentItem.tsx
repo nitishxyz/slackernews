@@ -2,25 +2,65 @@ import { useState } from 'react'
 import { usePrivy } from '@privy-io/react-auth'
 import { useRouter } from '@tanstack/react-router'
 import { submitComment } from '../server/comments'
+import { toggleUpvote } from '../server/upvotes'
+import { cn } from '../lib/utils'
 import { useAuthToken } from '../hooks/useAuthToken'
 
 export interface CommentProps {
-    id: number
-    by: string
-    time: string
-    text: string
-    postId: number
-    parentId: number | null
-    children: CommentProps[]
-    totalChildren?: number
+  id: number
+  by: string
+  time: string
+  text: string
+  score: number
+  userUpvoted?: boolean
+  postId: number
+  parentId: number | null
+  children: CommentProps[]
+  totalChildren?: number
 }
 
 export function CommentItem({ comment }: { comment: CommentProps }) {
   const [replying, setReplying] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [optimisticUpvote, setOptimisticUpvote] = useState<boolean | null>(null);
   const { authenticated, login } = usePrivy();
   const router = useRouter();
-  const { token } = useAuthToken();
+  const { token, loading: tokenLoading } = useAuthToken();
+
+  const baseUpvoted = comment.userUpvoted ?? false;
+  const isUpvoted = optimisticUpvote !== null ? optimisticUpvote : baseUpvoted;
+  const scoreDelta = (isUpvoted ? 1 : 0) - (baseUpvoted ? 1 : 0);
+  const displayScore = (comment.score || 0) + scoreDelta;
+
+  const handleUpvote = async () => {
+    if (!authenticated) {
+        login();
+        return;
+    }
+
+    if (!token || tokenLoading) {
+      console.error("No identity token available");
+      return;
+    }
+
+    const newValue = !isUpvoted;
+    setOptimisticUpvote(newValue);
+
+    try {
+        await toggleUpvote({
+            data: {
+                commentId: comment.id,
+            },
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        await router.invalidate();
+    } catch (e) {
+        setOptimisticUpvote(null);
+        console.error(e);
+    }
+  }
 
   const handleReply = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -59,9 +99,16 @@ export function CommentItem({ comment }: { comment: CommentProps }) {
 
   return (
     <div className="mb-2 text-[13px]">
-        <div className="text-[#828282] mb-1">
-            <span className="cursor-pointer hover:underline text-black font-medium" onClick={() => setCollapsed(!collapsed)}>{comment.by}</span>{' '}
-            <span>{comment.time}</span>{' '}
+        <div className="text-[#828282] mb-1 flex flex-wrap items-baseline gap-1">
+            <div className="cursor-pointer" title={isUpvoted ? 'unvote' : 'upvote'} onClick={handleUpvote}>
+               <span className={cn(
+                 "arrow-up w-2 h-2 border-b-[6px] border-x-[3px] border-x-transparent mb-0.5 inline-block",
+                 isUpvoted ? "border-b-[#4c1d95]" : "border-b-[#c6c6c6]"
+               )}></span>
+            </div>
+            <span className="cursor-pointer hover:underline text-black font-medium" onClick={() => setCollapsed(!collapsed)}>{comment.by}</span>
+            <span>{displayScore} points</span>
+            <span>{comment.time}</span>
             <span className="hover:underline cursor-pointer" onClick={() => setCollapsed(!collapsed)}>
                 {collapsed ? `[+${hiddenCount}]` : '[-]'}
             </span>

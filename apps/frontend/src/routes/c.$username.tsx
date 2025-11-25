@@ -100,7 +100,7 @@ function UserCommentsPage() {
                 <div className="flex items-baseline gap-1">
                   <div className="p-1 -ml-1 cursor-pointer" title={isUpvoted ? 'unvote' : 'upvote'} onClick={() => handleUpvote(comment.id, isUpvoted)}>
                     <span className={cn(
-                      "arrow-up w-2.5 h-2.5 border-x-transparent mb-0.5 inline-block",
+                      "arrow-up w-2.5 h-2.5 border-b-[8px] border-x-[4px] border-x-transparent mb-0.5 inline-block",
                       isUpvoted ? "border-b-[#4c1d95]" : "border-b-[#c6c6c6]"
                     )}></span>
                   </div>
@@ -197,4 +197,3 @@ function UserCommentsPage() {
     </div>
   )
 }
-
