@@ -83,6 +83,7 @@ function ItemPage() {
   const { token, loading: tokenLoading } = useAuthToken();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  const [optimisticComments, setOptimisticComments] = useState<CommentProps[]>([]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -101,7 +102,7 @@ function ItemPage() {
           throw new Error("No identity token");
         }
 
-        await submitComment({
+        const result = await submitComment({
             data: {
                 postId: post.id,
                 content,
@@ -112,6 +113,23 @@ function ItemPage() {
         });
         
         form.reset();
+
+        if (result.success && result.comment) {
+            const newComment: CommentProps = {
+                id: result.comment.id,
+                by: result.username,
+                time: "just now",
+                text: result.comment.content,
+                score: 1,
+                userUpvoted: true,
+                postId: result.comment.postId,
+                parentId: null,
+                children: [],
+                totalChildren: 0
+            };
+            setOptimisticComments(prev => [newComment, ...prev]);
+        }
+
         router.invalidate();
     } catch (e) {
         console.error(e);
@@ -132,12 +150,16 @@ function ItemPage() {
 
        <div className="mt-8 px-1 md:pl-4">
          <form onSubmit={handleSubmit} className="mb-8">
-            <textarea name="content" rows={6} className="w-full max-w-xl border border-gray-300 p-2 text-sm mb-2" disabled={submitting} />
+            <textarea name="content" rows={6} className="w-full max-w-xl border border-gray-300 p-2 text-sm mb-2 disabled:opacity-50" disabled={submitting} />
             <br />
-            <button type="submit" disabled={submitting} className="bg-background border border-gray-400 px-4 py-1 font-medium text-black hover:border-black rounded-sm text-xs">
-                add comment
+            <button type="submit" disabled={submitting} className="bg-background border border-gray-400 px-4 py-1 font-medium text-black hover:border-black rounded-sm text-xs disabled:opacity-50 disabled:cursor-not-allowed">
+                {submitting ? 'adding comment...' : 'add comment'}
             </button>
          </form>
+
+         {optimisticComments.filter(opt => !comments.some(c => c.id === opt.id)).map((comment) => (
+            <CommentItem key={comment.id} comment={comment} />
+         ))}
 
          {comments.map((comment) => (
             <CommentItem key={comment.id} comment={comment} />

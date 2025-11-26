@@ -46,7 +46,12 @@ export const submitComment = createServerFn({ method: "POST" })
         data.content
       );
 
-      return { success: true, comment };
+      const [author] = await db.select({ username: users.username })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      return { success: true, comment, username: author?.username || "unknown" };
     } catch (e) {
       console.error("Comment creation failed:", e);
       throw new Error("Comment creation failed.");
