@@ -4,6 +4,7 @@ import { db } from "../db/client";
 import { comments, upvotes, users, posts } from "@slackernews/core/db/schema";
 import { getAuthFromRequest } from "./auth";
 import { desc, eq, sql, and, isNull } from "drizzle-orm";
+import { insertHistoryRecord } from "./history";
 
 const CommentSchema = z.object({
   postId: z.number(),
@@ -32,11 +33,25 @@ export const submitComment = createServerFn({ method: "POST" })
       
       await db.insert(upvotes).values({
         authorId: userId,
+        postId: data.postId,
         commentId: comment.id,
         signature: "skipped",
       });
 
-      return { success: true, comment };
+      // Insert history record for comment submission
+      await insertHistoryRecord(
+        userId,
+        "commented",
+        data.postId,
+        data.content
+      );
+
+      const [author] = await db.select({ username: users.username })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      return { success: true, comment, username: author?.username || "unknown" };
     } catch (e) {
       console.error("Comment creation failed:", e);
       throw new Error("Comment creation failed.");
@@ -60,7 +75,7 @@ export const fetchComments = createServerFn({ method: "GET" })
       db.select({
         commentId: upvotes.commentId,
       }).from(upvotes).where(
-        and(eq(upvotes.authorId, userId), isNull(upvotes.postId))
+        and(eq(upvotes.authorId, userId), sql`${upvotes.commentId} is not null`)
       )
     ) : null;
 
@@ -110,6 +125,91 @@ export const fetchComments = createServerFn({ method: "GET" })
             ...comment,
             by: comment.authorUsername || comment.authorId?.slice(0, 8) || "unknown",
             username: comment.authorUsername || null,
+        })),
+        hasMore
+    };
+  });
+
+export const fetchUserComments = createServerFn({ method: "GET" })
+  .inputValidator((data: unknown) => z.object({
+    username: z.string().min(1),
+    limit: z.number().default(30).optional(),
+    page: z.number().default(1).optional(),
+  }).parse(data))
+  .handler(async ({ data }) => {
+    const { username, limit = 30, page = 1 } = data;
+    const offset = (page - 1) * limit;
+    const fetchLimit = limit + 1;
+
+    // First, get the user by username to get their ID
+    const [targetUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username))
+      .limit(1);
+
+    if (!targetUser) {
+      return {
+        comments: [],
+        hasMore: false,
+      };
+    }
+
+    const user = await getAuthFromRequest();
+    const userId = user?.id ?? null;
+
+    const userUpvotes = userId ? db.$with("user_upvotes").as(
+      db.select({
+        commentId: upvotes.commentId,
+      }).from(upvotes).where(
+        and(eq(upvotes.authorId, userId), sql`${upvotes.commentId} is not null`)
+      )
+    ) : null;
+
+    const scopedDb = userUpvotes ? db.with(userUpvotes) : db;
+
+    let baseQuery = scopedDb.select({
+      id: comments.id,
+      content: comments.content,
+      createdAt: comments.createdAt,
+      postId: comments.postId,
+      postTitle: posts.title,
+      authorId: comments.authorId,
+      score: sql<number>`count(distinct ${upvotes.id})`.mapWith(Number),
+      userUpvoted: userUpvotes ? sql<boolean>`${userUpvotes.commentId} is not null` : sql<boolean>`false`,
+    })
+    .from(comments)
+    .where(eq(comments.authorId, targetUser.id))
+    .leftJoin(posts, eq(comments.postId, posts.id))
+    .leftJoin(upvotes, eq(upvotes.commentId, comments.id));
+
+    if (userUpvotes) {
+      baseQuery = baseQuery.leftJoin(userUpvotes, eq(userUpvotes.commentId, comments.id));
+    }
+
+    const query = baseQuery.groupBy(
+      comments.id,
+      comments.content,
+      comments.createdAt,
+      comments.postId,
+      posts.title,
+      ...(userUpvotes ? [userUpvotes.commentId] : [])
+    )
+    .orderBy(desc(comments.createdAt))
+    .limit(fetchLimit)
+    .offset(offset);
+
+    const results = await query;
+    
+    const hasMore = results.length > limit;
+    const slicedResults = hasMore ? results.slice(0, limit) : results;
+
+    return {
+        comments: slicedResults.map(comment => ({
+            ...comment,
+            by: comment.authorId?.slice(0, 8) || "unknown",
+            username: null,
+            userUpvoted: comment.userUpvoted,
         })),
         hasMore
     };

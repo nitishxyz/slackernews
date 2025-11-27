@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { getUserByUsername } from "../server/users";
 import { getUsdcBalance } from "../server/wallet";
 import { usePrivy } from "@privy-io/react-auth";
@@ -102,15 +102,42 @@ function UserProfile() {
           <tr className="h-6">
             <td className="align-top text-[#828282] w-24 pr-2"></td>
             <td className="align-top pt-4">
-              <a href="#" className="underline text-black mr-2">
-                submissions
-              </a>
-              <a href="#" className="underline text-black mr-2">
-                comments
-              </a>
-              <a href="#" className="underline text-black">
-                favorites
-              </a>
+              {profileUser.username && (
+                <Link 
+                  to="/s/$username" 
+                  params={{ username: profileUser.username }}
+                  className="underline text-black mr-2"
+                >
+                  submissions
+                </Link>
+              )}
+              {!profileUser.username && (
+                <span className="text-black mr-2">submissions</span>
+              )}
+              {profileUser.username && (
+                <Link 
+                  to="/c/$username" 
+                  params={{ username: profileUser.username }}
+                  className="underline text-black mr-2"
+                >
+                  comments
+                </Link>
+              )}
+              {!profileUser.username && (
+                <span className="text-black mr-2">comments</span>
+              )}
+              {profileUser.username && (
+                <Link 
+                  to="/f/$username" 
+                  params={{ username: profileUser.username }}
+                  className="underline text-black"
+                >
+                  favorites
+                </Link>
+              )}
+              {!profileUser.username && (
+                <span className="text-black">favorites</span>
+              )}
             </td>
           </tr>
         </tbody>

@@ -52,13 +52,22 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "SlackerNews",
+        title: "Slacker News",
       },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
+      },
+      {
+        rel: "icon",
+        href: "/slackernews-logo.png",
+        type: "image/png",
+      },
+      {
+        rel: "apple-touch-icon",
+        href: "/slackernews-logo.png",
       },
     ],
   }),
